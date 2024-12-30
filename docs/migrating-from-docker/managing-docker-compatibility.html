@@ -13,7 +13,7 @@
 
 <link rel="preconnect" href="https://podman-desktop-website.goatcounter.com">
 <script async src="//gc.zgo.at/count.js" data-goatcounter="https://podman-desktop-website.goatcounter.com/count"></script><link rel="stylesheet" href="/assets/css/styles.18c2e16e.css">
-<script src="/assets/js/runtime~main.cacf74a7.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.d74b124f.js" defer="defer"></script>
 <script src="/assets/js/main.b627f7a5.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -24,7 +24,7 @@
 <li>
 <p>Check the system socket mapping status to know whether the socket is reachable. The default socket path is:</p>
 <ul>
-<li><em>/var/run/docker.sock</em> on macOS</li>
+<li><em>/var/run/docker.sock</em> on macOS and Linux</li>
 <li><em>npipe:////./pipe/docker_engine</em> on Windows</li>
 </ul>
 </li>
@@ -49,7 +49,7 @@
 <ul>
 <li><a href="/docs/podman/creating-a-podman-machine">A running Podman machine</a>.</li>
 </ul>
-<div class="tabs-container tabList_J5MA"><ul role="tablist" aria-orientation="horizontal" class="tabs"><li role="tab" tabindex="0" aria-selected="true" class="tabs__item tabItem_l0OV tabs__item--active">Windows</li><li role="tab" tabindex="-1" aria-selected="false" class="tabs__item tabItem_l0OV">macOS</li></ul><div class="margin-top--md"><div role="tabpanel" class="tabItem_wHwb markdown"><h4 class="anchor anchorWithStickyNavbar_JmGV" id="procedure">Procedure<a href="#procedure" class="hash-link" aria-label="Direct link to Procedure" title="Direct link to Procedure">​</a></h4><ol>
+<div class="tabs-container tabList_J5MA"><ul role="tablist" aria-orientation="horizontal" class="tabs"><li role="tab" tabindex="0" aria-selected="true" class="tabs__item tabItem_l0OV tabs__item--active">Windows</li><li role="tab" tabindex="-1" aria-selected="false" class="tabs__item tabItem_l0OV">macOS</li><li role="tab" tabindex="-1" aria-selected="false" class="tabs__item tabItem_l0OV">Linux</li></ul><div class="margin-top--md"><div role="tabpanel" class="tabItem_wHwb markdown"><h4 class="anchor anchorWithStickyNavbar_JmGV" id="procedure">Procedure<a href="#procedure" class="hash-link" aria-label="Direct link to Procedure" title="Direct link to Procedure">​</a></h4><ol>
 <li>Go to <strong>Settings &gt; Docker Compatibility</strong>.</li>
 <li><strong>System socket status</strong> setting: View the socket mapping status to check whether the socket is reachable.</li>
 <li><strong>Docker CLI Context</strong> setting: Select a socket context to work with from the dropdown list.</li>
@@ -62,6 +62,12 @@
 <li><strong>Podman Compose CLI Support</strong> setting: Check whether the Podman Compose CLI is supported. If not, use the <strong>Setup...</strong> button to install and set up the CLI.</li>
 <li><strong>Third-Party Docker Tool Compatibility</strong> setting: Customize the setting, if needed. When enabled, you can use third-party Docker tools with Podman.
 <img decoding="async" loading="lazy" alt="Docker compatibility page on macOS" src="/assets/images/docker-compatibility-page-on-macOS-116432aba610ddadcc8fc453a15b8ce0.png" width="1326" height="654" class="img_SS3x"></li>
+</ol></div><div role="tabpanel" class="tabItem_wHwb markdown" hidden=""><h4 class="anchor anchorWithStickyNavbar_JmGV" id="procedure-2">Procedure<a href="#procedure-2" class="hash-link" aria-label="Direct link to Procedure" title="Direct link to Procedure">​</a></h4><ol>
+<li>Go to <strong>Settings &gt; Docker Compatibility</strong>.</li>
+<li><strong>System socket status</strong> setting: View the socket mapping status to check whether the socket is reachable.</li>
+<li><strong>Docker CLI Context</strong> setting: Select a socket context to work with from the dropdown list.</li>
+<li><strong>Podman Compose CLI Support</strong> setting: Check whether the Podman Compose CLI is supported. If not, use the <strong>Setup...</strong> button to install and set up the CLI.
+<img decoding="async" loading="lazy" alt="Docker compatibility page on Linux" src="/assets/images/docker-compatibility-page-on-linux-72710529b93f08fe4164b6f2eb0c13d2.png" width="794" height="304" class="img_SS3x"></li>
 </ol></div></div></div>
 <h4 class="anchor anchorWithStickyNavbar_JmGV" id="verification">Verification<a href="#verification" class="hash-link" aria-label="Direct link to Verification" title="Direct link to Verification">​</a></h4>
 <ul>
