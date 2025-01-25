@@ -14,7 +14,7 @@
 
 <link rel="preconnect" href="https://podman-desktop-website.goatcounter.com">
 <script async src="//gc.zgo.at/count.js" data-goatcounter="https://podman-desktop-website.goatcounter.com/count"></script><link rel="stylesheet" href="/assets/css/styles.329ff25a.css">
-<script src="/assets/js/runtime~main.b5761019.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.09d6f5a3.js" defer="defer"></script>
 <script src="/assets/js/main.3c19e7e4.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -29,7 +29,7 @@
 <div class="theme-admonition theme-admonition-note admonition_WCGJ alert alert--secondary"><div class="admonitionHeading_GCBg"><span class="admonitionIcon_L39b"><svg viewBox="0 0 14 16"><path fill-rule="evenodd" d="M6.3 5.69a.942.942 0 0 1-.28-.7c0-.28.09-.52.28-.7.19-.18.42-.28.7-.28.28 0 .52.09.7.28.18.19.28.42.28.7 0 .28-.09.52-.28.7a1 1 0 0 1-.7.3c-.28 0-.52-.11-.7-.3zM8 7.99c-.02-.25-.11-.48-.31-.69-.2-.19-.42-.3-.69-.31H6c-.27.02-.48.13-.69.31-.2.2-.3.44-.31.69h1v3c.02.27.11.5.31.69.2.2.42.31.69.31h1c.27 0 .48-.11.69-.31.2-.19.3-.42.31-.69H8V7.98v.01zM7 2.3c-3.14 0-5.7 2.54-5.7 5.68 0 3.14 2.56 5.7 5.7 5.7s5.7-2.55 5.7-5.7c0-3.15-2.56-5.69-5.7-5.69v.01zM7 .98c3.86 0 7 3.14 7 7s-3.14 7-7 7-7-3.12-7-7 3.14-7 7-7z"></path></svg></span>note</div><div class="admonitionContent_pbrs"><p>Alternatively, you can add a <code>podman</code> context by using the <code>docker context create</code> command.</p><ul>
 <li>
 <p>For example, set the value of the context in this pattern on a macOS machine:</p>
-<p><code>docker context create podman --docker &quot;host=unix://$HOME.local/share/containers/podman/machine/podman.sock&quot;</code></p>
+<p><code>docker context create podman --docker &quot;host=unix://${HOME}/.local/share/containers/podman/machine/podman.sock&quot;</code></p>
 <p>Where, the path specified after the <code>unix://</code> scheme denotes the <code>DOCKER_HOST</code> value.</p>
 </li>
 </ul><p>Then, you can run the <code>docker context use podman</code> command to switch to that context. This way you can use your Docker CLI to run your tasks on a remote Podman engine. When you run the <code>docker ps</code> command, it queries the Podman socket specified in the current context.</p></div></div>
