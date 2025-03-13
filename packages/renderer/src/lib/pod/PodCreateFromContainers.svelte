@@ -21,8 +21,7 @@ let podCreation: PodCreation;
 let createInProgress = false;
 let createError: string | undefined = undefined;
 let mapPortExposed = new Map<number, { exposed: boolean; container: string }>();
-let containersPorts: { containers: string[]; ports: number[] }[];
-$: containersPorts = [];
+let containersPorts: { containers: string[]; ports: number[] }[] = [];
 
 let providers: ProviderInfo[] = [];
 $: providerConnections = providers
