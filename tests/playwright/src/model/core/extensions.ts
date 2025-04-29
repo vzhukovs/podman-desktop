@@ -160,6 +160,13 @@ export const registriesExtension: ExtensionType = {
   extensionFullLabel: 'podman-desktop.registries',
 };
 
+export const rhelExtension: ExtensionType = {
+  extensionName: 'Macadam',
+  extensionFullName: 'Macadam extension',
+  extensionLabel: 'macadam',
+  extensionFullLabel: 'redhat.macadam',
+};
+
 export const extensionsBuiltInList = [
   composeExtension,
   dockerExtension,
