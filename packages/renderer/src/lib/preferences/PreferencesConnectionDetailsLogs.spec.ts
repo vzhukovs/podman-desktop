@@ -44,15 +44,6 @@ const containerConnection: ProviderContainerConnectionInfo = {
 };
 
 beforeAll(async () => {
-  vi.stubGlobal('window', {
-    getConfigurationValue: vi.fn(),
-    startReceiveLogs: vi.fn(),
-    getComputedStyle: vi.fn().mockReturnValue({
-      getPropertyValue: vi.fn().mockReturnValue('value'),
-    }),
-    addEventListener: vi.fn(),
-  });
-
   global.ResizeObserver = vi.fn().mockImplementation(() => ({
     observe: vi.fn(),
     unobserve: vi.fn(),
