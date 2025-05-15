@@ -19,7 +19,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-function */
-/* eslint-disable @typescript-eslint/consistent-type-imports */
 
 import '@testing-library/jest-dom/vitest';
 
@@ -31,7 +30,7 @@ import { beforeAll, beforeEach, expect, test, vi } from 'vitest';
 
 import type { ProviderContainerConnectionInfo } from '/@api/provider-info';
 
-let PreferencesConnectionDetailsLogs: typeof import('./PreferencesConnectionDetailsLogs.svelte').default;
+import PreferencesConnectionDetailsLogs from './PreferencesConnectionDetailsLogs.svelte';
 
 const containerConnection: ProviderContainerConnectionInfo = {
   name: 'connection',
@@ -51,9 +50,6 @@ beforeAll(async () => {
 
   Terminal.prototype.open = vi.fn();
   Terminal.prototype.write = vi.fn();
-
-  const module = await import('./PreferencesConnectionDetailsLogs.svelte');
-  PreferencesConnectionDetailsLogs = module.default;
 });
 
 beforeEach(() => {
