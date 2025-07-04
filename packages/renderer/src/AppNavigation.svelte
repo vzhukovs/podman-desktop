@@ -37,29 +37,48 @@ onDidChangeConfiguration.addEventListener(NAV_BAR_LAYOUT, onDidChangeConfigurati
 
 let minNavbarWidth = $derived(iconWithTitle ? 'min-w-fit' : 'min-w-leftnavbar');
 
+let scrollEl: HTMLDivElement;
+let resizeObserver: ResizeObserver;
+let showTopShadow = $state(false);
+let showBottomShadow = $state(false);
+
+let thumbTop = $state(0);
+let thumbHeight = $state(20);
+let hasScroll = $state(false);
+
 onMount(async () => {
   const commandRegistry = new CommandRegistry();
   commandRegistry.init();
   iconWithTitle = (await window.getConfigurationValue(NAV_BAR_LAYOUT)) === AppearanceSettings.IconAndTitle;
   await tick();
-  handleScroll();
+  resizeObserver = new ResizeObserver(handleScroll);
+  if (scrollEl) resizeObserver.observe(scrollEl);
 });
 
 onDestroy(() => {
   onDidChangeConfiguration.removeEventListener(NAV_BAR_LAYOUT, onDidChangeConfigurationCallback);
+  resizeObserver?.disconnect();
 });
 
-let scrollEl: HTMLDivElement;
-let showTopShadow = $state(false);
-let showBottomShadow = $state(false);
-
 function handleScroll(): void {
-  const scrollTop = scrollEl.scrollTop;
-  const scrollHeight = scrollEl.scrollHeight;
-  const clientHeight = scrollEl.clientHeight;
+  const { scrollTop, scrollHeight, clientHeight } = scrollEl;
+
+  hasScroll = scrollHeight > clientHeight + 1;
+
+  if (!hasScroll) {
+    thumbTop = 0;
+    thumbHeight = 0;
+    showTopShadow = false;
+    showBottomShadow = false;
+    return;
+  }
 
   showTopShadow = scrollTop > 5;
   showBottomShadow = scrollTop + clientHeight < scrollHeight - 5;
+
+  const ratio = clientHeight / scrollHeight;
+  thumbHeight = Math.max(clientHeight * ratio, 18);
+  thumbTop = scrollTop * ratio;
 }
 
 function handleClick(): void {
@@ -100,43 +119,55 @@ function onDidChangeConfigurationCallback(e: Event): void {
     </div>
   </NavItem>
 
-    {#each $navigationRegistry as navigationRegistryItem, index (index)}
-      {#if navigationRegistryItem.items && navigationRegistryItem.type === 'group'}
-        <!-- This is a group, list all items from the entry -->
-        <div class="relative min-h-0 flex-1">
-          <div
-            bind:this={scrollEl}
-            class="overflow-y-scroll overflow-x-visible h-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            on:scroll={handleScroll}>
-            {#each navigationRegistryItem.items as item, index (index)}
-              <NavRegistryEntry entry={item} bind:meta={meta} iconWithTitle={iconWithTitle} />
-            {/each}
-            <div class="grow"></div>
-          </div>
-
-          {#if showTopShadow}
-            <div class="absolute top-0 left-0 right-0 h-5 bg-gradient-to-b from-black/20 to-transparent z-50 pointer-events-none" />
-          {/if}
-          {#if showBottomShadow}
-            <div class="absolute bottom-0 left-0 right-0 h-5 bg-gradient-to-t from-black/20 to-transparent z-50 pointer-events-none" />
-          {/if}
+  {#each $navigationRegistry as navigationRegistryItem, index (index)}
+    {#if navigationRegistryItem.items && navigationRegistryItem.type === 'group'}
+      <!-- This is a group, list all items from the entry -->
+      <div class="relative min-h-0 flex-1">
+        <div
+          bind:this={scrollEl}
+          class="overflow-y-scroll overflow-x-visible h-full [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]"
+          onscroll={handleScroll}>
+          {#each navigationRegistryItem.items as item, index (index)}
+            <NavRegistryEntry entry={item} bind:meta={meta} iconWithTitle={iconWithTitle} />
+          {/each}
+          <div class="grow"></div>
         </div>
-      {:else if navigationRegistryItem.type === 'entry' || navigationRegistryItem.type === 'submenu'}
-        <NavRegistryEntry entry={navigationRegistryItem} bind:meta={meta} iconWithTitle={iconWithTitle} />
-      {/if}
-    {/each}
+
+        {#if hasScroll}
+          <div class="absolute inset-y-0 right-0 w-1 pointer-events-none">
+            <div
+              class="absolute w-full rounded z-[60]"
+              style="
+                top:{thumbTop}px;
+                height:{thumbHeight}px;
+                background:rgba(255,255,255,.35)">
+            </div>
+          </div>
+        {/if}
+
+        {#if showTopShadow}
+          <div class="absolute top-0 left-0 right-0 h-5 bg-gradient-to-b from-black/20 to-transparent z-50 pointer-events-none"></div>
+        {/if}
+        {#if showBottomShadow}
+          <div class="absolute bottom-0 left-0 right-0 h-5 bg-gradient-to-t from-black/20 to-transparent z-50 pointer-events-none"></div>
+        {/if}
+      </div>
+    {:else if navigationRegistryItem.type === 'entry' || navigationRegistryItem.type === 'submenu'}
+      <NavRegistryEntry entry={navigationRegistryItem} bind:meta={meta} iconWithTitle={iconWithTitle} />
+    {/if}
+  {/each}
 
   <div bind:this={outsideWindow}>
     <NavItem href="/accounts" tooltip="" bind:meta={meta} onClick={authActions?.onButtonClick}>
       <Tooltip bottomRight tip="Accounts">
-      <div class="flex flex-col items-center w-full h-full">
-        <AccountIcon size={iconSize} />
-        {#if iconWithTitle}
-          <div class="text-xs text-center ml-[2px]" aria-label="Accounts title">
-            Accounts
-          </div>
-        {/if}
-      </div>
+        <div class="flex flex-col items-center w-full h-full">
+          <AccountIcon size={iconSize} />
+          {#if iconWithTitle}
+            <div class="text-xs text-center ml-[2px]" aria-label="Accounts title">
+              Accounts
+            </div>
+          {/if}
+        </div>
       </Tooltip>
       <AuthActions bind:this={authActions} outsideWindow={outsideWindow} />
     </NavItem>
