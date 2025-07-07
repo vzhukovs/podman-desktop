@@ -56,9 +56,7 @@ async function computePos(directionProps: Record<string, boolean>): Promise<{ to
   const outer = screen.getByText('pos').parentElement as HTMLElement;
 
   // Complain because we overwrite readonly method – this is intentional for the unit test.
-  // @ts-expect-error overriding for test stub
   wrapper.getBoundingClientRect = (): DOMRect => WRAPPER_RECT;
-  // @ts-expect-error overriding for test stub
   outer.getBoundingClientRect = (): DOMRect => TIP_RECT;
 
   await fireEvent.mouseEnter(wrapper);
