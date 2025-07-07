@@ -43,13 +43,14 @@ let tooltipInner: HTMLDivElement | null = null;
 
 $effect(() => {
   const { tip } = propsData;
-  if (tooltipInner) {
-    tooltipInner.textContent = tip ?? '';
-    if (tip !== undefined) {
-      tooltipInner.setAttribute('aria-label', tip);
-    } else {
-      tooltipInner.removeAttribute('aria-label');
-    }
+
+  if (!tooltipInner) return;
+
+  while (tooltipInner.firstChild) tooltipInner.removeChild(tooltipInner.firstChild);
+
+  if (tip?.trim().length) {
+    tooltipInner.append(document.createTextNode(tip));
+    hasSlotContent = false;
   }
 });
 
@@ -132,14 +133,26 @@ onMount(() => {
   tooltipOuter.className =
     'whitespace-nowrap absolute tooltip opacity-0 inline-block transition-opacity duration-150 ease-in-out pointer-events-none text-sm z-60';
 
+  if (propsData.left) tooltipOuter.classList.add('left');
+  if (propsData.right) tooltipOuter.classList.add('right');
+  if (propsData.top) tooltipOuter.classList.add('top');
+  if (propsData.bottom) tooltipOuter.classList.add('bottom');
+  if (propsData.topLeft) tooltipOuter.classList.add('top-left');
+  if (propsData.topRight) tooltipOuter.classList.add('top-right');
+  if (propsData.bottomLeft) tooltipOuter.classList.add('bottom-left');
+  if (propsData.bottomRight) tooltipOuter.classList.add('bottom-right');
+
+  const { tip } = propsData;
+
   const extra = propsData.class?.trim();
-  if (extra) tooltipOuter.classList.add(...extra.split(/\s+/));
 
   tooltipInner.className =
-    'inline-block py-2 px-4 rounded-md bg-[var(--pd-tooltip-bg)] text-[var(--pd-tooltip-text)] border border-[var(--pd-tooltip-border)]';
+    'inline-block py-2 px-4 rounded-md bg-[var(--pd-tooltip-bg)] text-[var(--pd-tooltip-text)] border-[1px] border-[var(--pd-tooltip-border)]';
 
-  if (propsData.tip?.trim().length) {
-    tooltipInner.textContent = propsData.tip;
+  if (extra) tooltipInner.classList.add(...extra.split(/\s+/));
+
+  if (tip?.trim().length) {
+    tooltipInner.append(document.createTextNode(tip));
   } else if (slotContainer) {
     while (slotContainer.firstChild) {
       const node = slotContainer.firstChild;
@@ -148,6 +161,10 @@ onMount(() => {
       tooltipInner.appendChild(node);
       if (isMeaningful) hasSlotContent = true;
     }
+  }
+
+  if (contentAvailable()) {
+    tooltipInner.setAttribute('aria-label', 'tooltip');
   }
 
   tooltipOuter.appendChild(tooltipInner);

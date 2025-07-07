@@ -263,7 +263,7 @@ test('adds extra classes from `class` prop', () => {
     },
   });
 
-  const outer = screen.getByText('my tooltip').parentElement as HTMLElement;
+  const outer = screen.getByText('my tooltip') as HTMLElement;
 
   expect(outer).toHaveClass('bg-red-500');
   expect(outer).toHaveClass('shadow-lg');
