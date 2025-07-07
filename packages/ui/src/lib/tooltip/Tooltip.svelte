@@ -25,24 +25,24 @@ interface Position {
   lp: number;
 }
 
-const props = $props() as TooltipProps;
+const propsData = $props() as TooltipProps;
 
 // Forward all unknown attributes to the wrapper element (class handled separately)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const { class: _classIgnored, ...restProps } = props;
+const { class: _classIgnored, ...restProps } = propsData;
 
 let hasSlotContent = false;
 
 const EDGE = 8;
 const SHIFT_RIGHT_VERT = 10;
 
-let wrapperEl;
-let slotContainer;
-let tooltipOuter;
-let tooltipInner;
+let wrapperEl: HTMLElement | null = null;
+let slotContainer: HTMLElement | null = null;
+let tooltipOuter: HTMLDivElement | null = null;
+let tooltipInner: HTMLDivElement | null = null;
 
 $effect(() => {
-  const { tip } = props;
+  const { tip } = propsData;
   if (tooltipInner) {
     tooltipInner.textContent = tip ?? '';
     if (tip !== undefined) {
@@ -54,13 +54,13 @@ $effect(() => {
 });
 
 function contentAvailable(): boolean {
-  if (props.tip?.trim().length) return true;
+  if (propsData.tip?.trim().length) return true;
   if (hasSlotContent) return true;
   return !!tooltipInner?.textContent?.trim().length;
 }
 
 function calculatePosition(rect: DOMRect, tipRect: DOMRect): Position {
-  const { top, bottom, left, right, topLeft, topRight, bottomLeft, bottomRight } = props;
+  const { top, bottom, left, right, topLeft, topRight, bottomLeft, bottomRight } = propsData;
 
   let tp = 0;
   let lp = 0;
@@ -96,7 +96,7 @@ function showTooltip(): void {
   if (!contentAvailable()) return;
   if (!wrapperEl || !tooltipOuter || !tooltipInner) return;
 
-  if (props.tip) tooltipInner.textContent = props.tip;
+  if (propsData.tip) tooltipInner.textContent = propsData.tip;
 
   const rect = wrapperEl.getBoundingClientRect();
   const tipRect = tooltipOuter.getBoundingClientRect();
@@ -132,14 +132,14 @@ onMount(() => {
   tooltipOuter.className =
     'whitespace-nowrap absolute tooltip opacity-0 inline-block transition-opacity duration-150 ease-in-out pointer-events-none text-sm z-60';
 
-  const extra = props.class?.trim();
+  const extra = propsData.class?.trim();
   if (extra) tooltipOuter.classList.add(...extra.split(/\s+/));
 
   tooltipInner.className =
     'inline-block py-2 px-4 rounded-md bg-[var(--pd-tooltip-bg)] text-[var(--pd-tooltip-text)] border border-[var(--pd-tooltip-border)]';
 
-  if (props.tip?.trim().length) {
-    tooltipInner.textContent = props.tip;
+  if (propsData.tip?.trim().length) {
+    tooltipInner.textContent = propsData.tip;
   } else if (slotContainer) {
     while (slotContainer.firstChild) {
       const node = slotContainer.firstChild;
