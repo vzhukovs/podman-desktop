@@ -53,12 +53,12 @@ const experimentalConfigurationManager: ExperimentalConfigurationManager = {
   isExperimentalConfigurationEnabled: vi.fn(),
 } as unknown as ExperimentalConfigurationManager;
 
+let taskManager: TaskManager;
+
 beforeEach(() => {
   vi.resetAllMocks();
-});
 
-test('task manager init should register a configuration option', async () => {
-  const taskManager = new TaskManager(
+  taskManager = new TaskManager(
     apiSender,
     statusBarRegistry,
     commandRegistry,
@@ -66,6 +66,9 @@ test('task manager init should register a configuration option', async () => {
     experimentalConfigurationManager,
   );
   taskManager.init();
+});
+
+test('task manager init should register a configuration option', async () => {
   expect(configurationRegistry.registerConfigurations).toHaveBeenCalledOnce();
   expect(configurationRegistry.registerConfigurations).toHaveBeenCalledWith(
     expect.arrayContaining([expect.objectContaining({ id: 'preferences.experimental.tasks' })]),
@@ -113,13 +116,6 @@ test('task manager init should register a configuration option', async () => {
 });
 
 test('create task with title', async () => {
-  const taskManager = new TaskManager(
-    apiSender,
-    statusBarRegistry,
-    commandRegistry,
-    configurationRegistry,
-    experimentalConfigurationManager,
-  );
   const task = taskManager.createTask({ title: 'title' });
   expect(task.id).equal('task-1');
   expect(task.name).equal('title');
@@ -135,13 +131,6 @@ test('create task with title', async () => {
 });
 
 test('create task without title', async () => {
-  const taskManager = new TaskManager(
-    apiSender,
-    statusBarRegistry,
-    commandRegistry,
-    configurationRegistry,
-    experimentalConfigurationManager,
-  );
   const task = taskManager.createTask();
   expect(task.id).equal('task-1');
   expect(task.name).equal('Task 1');
@@ -157,13 +146,6 @@ test('create task without title', async () => {
 });
 
 test('create multiple tasks with title', async () => {
-  const taskManager = new TaskManager(
-    apiSender,
-    statusBarRegistry,
-    commandRegistry,
-    configurationRegistry,
-    experimentalConfigurationManager,
-  );
   const task = taskManager.createTask({ title: 'title' });
   expect(task.id).equal('task-1');
   expect(task.name).equal('title');
@@ -205,13 +187,6 @@ test('create multiple tasks with title', async () => {
 });
 
 test('create notification task with body', async () => {
-  const taskManager = new TaskManager(
-    apiSender,
-    statusBarRegistry,
-    commandRegistry,
-    configurationRegistry,
-    experimentalConfigurationManager,
-  );
   const task = taskManager.createNotificationTask({
     title: 'title',
     body: 'body',
@@ -233,13 +208,6 @@ test('create notification task with body', async () => {
 });
 
 test('create error notification task', async () => {
-  const taskManager = new TaskManager(
-    apiSender,
-    statusBarRegistry,
-    commandRegistry,
-    configurationRegistry,
-    experimentalConfigurationManager,
-  );
   const task = taskManager.createNotificationTask({
     title: 'title',
     body: 'body',
@@ -262,13 +230,6 @@ test('create error notification task', async () => {
 });
 
 test('create task without body', async () => {
-  const taskManager = new TaskManager(
-    apiSender,
-    statusBarRegistry,
-    commandRegistry,
-    configurationRegistry,
-    experimentalConfigurationManager,
-  );
   const task = taskManager.createNotificationTask({
     title: 'title',
   });
@@ -288,13 +249,6 @@ test('create task without body', async () => {
 });
 
 test('create task with markdown actions', async () => {
-  const taskManager = new TaskManager(
-    apiSender,
-    statusBarRegistry,
-    commandRegistry,
-    configurationRegistry,
-    experimentalConfigurationManager,
-  );
   const task = taskManager.createNotificationTask({
     title: 'title',
     markdownActions: 'action',
@@ -315,13 +269,6 @@ test('create task with markdown actions', async () => {
 });
 
 test('create multiple stateful tasks with title', async () => {
-  const taskManager = new TaskManager(
-    apiSender,
-    statusBarRegistry,
-    commandRegistry,
-    configurationRegistry,
-    experimentalConfigurationManager,
-  );
   const task = taskManager.createNotificationTask({
     title: 'title',
   });
@@ -375,14 +322,6 @@ test('create multiple stateful tasks with title', async () => {
 });
 
 test('clear tasks should clear task not in running state', async () => {
-  const taskManager = new TaskManager(
-    apiSender,
-    statusBarRegistry,
-    commandRegistry,
-    configurationRegistry,
-    experimentalConfigurationManager,
-  );
-
   const task1 = taskManager.createTask({ title: 'Task 1' });
   task1.status = 'success';
   const task2 = taskManager.createTask({ title: 'Task 2' });
@@ -415,13 +354,6 @@ test('clear tasks should clear task not in running state', async () => {
 });
 
 test('create task being cancellable', async () => {
-  const taskManager = new TaskManager(
-    apiSender,
-    statusBarRegistry,
-    commandRegistry,
-    configurationRegistry,
-    experimentalConfigurationManager,
-  );
   const task = taskManager.createTask({ cancellable: true, cancellationTokenSourceId: 1 });
   expect(task.id).equal('task-1');
   expect(task.name).equal('Task 1');
@@ -441,28 +373,12 @@ test('create task being cancellable', async () => {
 });
 
 test('create task being cancellable throw error if missing cancellationTokenSourceId', async () => {
-  const taskManager = new TaskManager(
-    apiSender,
-    statusBarRegistry,
-    commandRegistry,
-    configurationRegistry,
-    experimentalConfigurationManager,
-  );
-
   expect(() => taskManager.createTask({ cancellable: true })).toThrow(
     'cancellable task requires a cancellationTokenSourceId',
   );
 });
 
 test('create task having cancellationTokenSourceId without being cancellable throw error', async () => {
-  const taskManager = new TaskManager(
-    apiSender,
-    statusBarRegistry,
-    commandRegistry,
-    configurationRegistry,
-    experimentalConfigurationManager,
-  );
-
   expect(() => taskManager.createTask({ cancellationTokenSourceId: 4 })).toThrow(
     'cancellationTokenSourceId is only allowed for cancellable tasks',
   );
@@ -470,28 +386,12 @@ test('create task having cancellationTokenSourceId without being cancellable thr
 
 describe('execute', () => {
   test('execute should throw an error if the task does not exist', async () => {
-    const taskManager = new TaskManager(
-      apiSender,
-      statusBarRegistry,
-      commandRegistry,
-      configurationRegistry,
-      experimentalConfigurationManager,
-    );
-
     expect(() => {
       taskManager.execute('fake-id');
     }).toThrowError(`task with id fake-id does not exist.`);
   });
 
   test('execute should throw an error if the task has no action', async () => {
-    const taskManager = new TaskManager(
-      apiSender,
-      statusBarRegistry,
-      commandRegistry,
-      configurationRegistry,
-      experimentalConfigurationManager,
-    );
-
     const task = taskManager.createTask({ title: 'Task 1' });
     expect(() => {
       taskManager.execute(task.id);
@@ -499,14 +399,6 @@ describe('execute', () => {
   });
 
   test('execute should execute the task execute function', async () => {
-    const taskManager = new TaskManager(
-      apiSender,
-      statusBarRegistry,
-      commandRegistry,
-      configurationRegistry,
-      experimentalConfigurationManager,
-    );
-
     const task = taskManager.createTask({ title: 'Task 1' });
     task.action = {
       name: 'Dummy action name',
@@ -519,14 +411,6 @@ describe('execute', () => {
 });
 
 test('updating a task should notify apiSender', () => {
-  const taskManager = new TaskManager(
-    apiSender,
-    statusBarRegistry,
-    commandRegistry,
-    configurationRegistry,
-    experimentalConfigurationManager,
-  );
-
   const task = taskManager.createTask({ title: 'Task 1' });
   expect(apiSenderSendMock).toHaveBeenCalledWith('task-created', expect.anything());
 
@@ -543,28 +427,11 @@ test('updating a task should notify apiSender', () => {
 });
 
 test('Ensure init setup command and statusbar registry', async () => {
-  const taskManager = new TaskManager(
-    apiSender,
-    statusBarRegistry,
-    commandRegistry,
-    configurationRegistry,
-    experimentalConfigurationManager,
-  );
-  taskManager.init();
-
   expect(mocks.registerCommandMock).toHaveBeenCalledOnce();
   expect(mocks.setEntryMock).toHaveBeenCalledOnce();
 });
 
 test('Ensure statusbar registry', async () => {
-  const taskManager = new TaskManager(
-    apiSender,
-    statusBarRegistry,
-    commandRegistry,
-    configurationRegistry,
-    experimentalConfigurationManager,
-  );
-
   taskManager.createTask({ title: 'Dummy Task' });
 
   expect(statusBarRegistry.setEntry).toHaveBeenCalledWith(
@@ -582,13 +449,6 @@ test('Ensure statusbar registry', async () => {
 });
 
 test('task dispose should send `task-removed` message', async () => {
-  const taskManager = new TaskManager(
-    apiSender,
-    statusBarRegistry,
-    commandRegistry,
-    configurationRegistry,
-    experimentalConfigurationManager,
-  );
   const task = taskManager.createNotificationTask({
     title: 'title',
     body: 'body',
