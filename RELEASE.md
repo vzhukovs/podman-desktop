@@ -88,6 +88,8 @@ This is done on your release URL
 2.  Press the edit button.
 3.  Uncheck `Set as a pre-release`
 
+**IMPORTANT NOTE:** Only the .z version that was approved by QE should be changed from pre-release to release. Any previous blocked versions need to stay as pre-release. For example, if the respin version `1.3.1` was approved by QE after finding bugs in `1.3.0`, only `1.3.1` should be moved from pre-release to release.
+
 ## Updating package managers (Brew, Winget, Chocolatey, Flathub)
 
 Pre-requisites:
