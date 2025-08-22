@@ -16,6 +16,10 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
+import { promises as fs } from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
+
 import type { TelemetrySender } from '@podman-desktop/api';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -87,6 +91,10 @@ class TelemetryTest extends Telemetry {
 
   public override async internalTrack(event: EventType, eventProperties?: unknown): Promise<void> {
     return super.internalTrack(event, eventProperties);
+  }
+
+  public override hasCustomCertificates(): Promise<boolean> {
+    return super.hasCustomCertificates();
   }
 }
 
@@ -366,5 +374,48 @@ describe('aggregateTrack', () => {
     expect(pending).toBeDefined();
     expect(Array.isArray(pending?.properties)).toBe(true);
     expect(pending?.properties).toEqual([{ foo: 1 }, { bar: 2 }]);
+  });
+});
+
+describe('hasCustomCertificates', () => {
+  let tmpHome: string;
+  let prevHome: string | undefined;
+
+  beforeEach(async () => {
+    tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), 'pd-certs-test-'));
+    prevHome = process.env['HOME'];
+    process.env['HOME'] = tmpHome;
+    process.env['XDG_CONFIG_HOME'] = path.join(tmpHome, '.config');
+  });
+
+  afterEach(async () => {
+    process.env['HOME'] = prevHome;
+    delete process.env['XDG_CONFIG_HOME'];
+    await fs.rm(tmpHome, { recursive: true, force: true });
+  });
+
+  test('returns false when no cert dirs exist', async () => {
+    await expect(telemetry.hasCustomCertificates()).resolves.toBe(false);
+  });
+
+  test('returns false when certs.d exists but has no subdirs', async () => {
+    const dir = path.join(tmpHome, '.config', 'containers', 'certs.d');
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(path.join(dir, 'note.txt'), 'hello');
+    await expect(telemetry.hasCustomCertificates()).resolves.toBe(false);
+  });
+
+  test('returns false when subdir exists but has no cert-like files', async () => {
+    const sub = path.join(tmpHome, '.config', 'containers', 'certs.d', 'example.com:5000');
+    await fs.mkdir(sub, { recursive: true });
+    await fs.writeFile(path.join(sub, 'readme'), 'no certs here');
+    await expect(telemetry.hasCustomCertificates()).resolves.toBe(false);
+  });
+
+  test('returns true when ca.crt present in a registry subdir', async () => {
+    const sub = path.join(tmpHome, '.config', 'containers', 'certs.d', 'registry.test:5001');
+    await fs.mkdir(sub, { recursive: true });
+    await fs.writeFile(path.join(sub, 'ca.crt'), '-----BEGIN CERTIFICATE-----\nDUMMY\n');
+    await expect(telemetry.hasCustomCertificates()).resolves.toBe(true);
   });
 });

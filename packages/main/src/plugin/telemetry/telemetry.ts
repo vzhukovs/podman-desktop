@@ -16,7 +16,9 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
+import { promises as fs } from 'node:fs';
 import * as os from 'node:os';
+import * as path from 'node:path';
 import { promisify } from 'node:util';
 
 import type {
@@ -450,6 +452,7 @@ export class Telemetry {
     const os_version = os.release();
     const os_distribution = await this.getDistribution();
     const os_name = this.getPlatform();
+    const using_custom_certificates = await this.hasCustomCertificates();
 
     return {
       timezone,
@@ -457,7 +460,28 @@ export class Telemetry {
       os_version,
       os_distribution,
       locale,
+      using_custom_certificates,
     };
+  }
+
+  protected async hasCustomCertificates(): Promise<boolean> {
+    const certDirs = [path.join(os.homedir(), '.config', 'containers', 'certs.d'), '/etc/containers/certs.d'];
+
+    for (const dir of certDirs) {
+      try {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+        for (const e of entries) {
+          if (!e.isDirectory()) continue;
+          const files = await fs.readdir(path.join(dir, e.name));
+          if (files.some(n => /\.(crt|cert|key)$/i.test(n))) {
+            return true;
+          }
+        }
+      } catch {
+        // directory may not exist — ignore then
+      }
+    }
+    return false;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-wrapper-object-types
