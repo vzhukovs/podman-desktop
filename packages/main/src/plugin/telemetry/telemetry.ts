@@ -466,21 +466,31 @@ export class Telemetry {
 
   protected async hasCustomCertificates(): Promise<boolean> {
     const certDirs = [path.join(os.homedir(), '.config', 'containers', 'certs.d'), '/etc/containers/certs.d'];
+    const certExt = /\.(?:crt|cert|key)$/i;
 
     for (const dir of certDirs) {
+      let entries;
       try {
-        const entries = await fs.readdir(dir, { withFileTypes: true });
-        for (const e of entries) {
-          if (!e.isDirectory()) continue;
-          const files = await fs.readdir(path.join(dir, e.name));
-          if (files.some(n => /\.(crt|cert|key)$/i.test(n))) {
-            return true;
-          }
-        }
+        entries = await fs.readdir(dir, { withFileTypes: true });
       } catch {
-        // directory may not exist — ignore then
+        // ignore missing/unreadable dir
+        continue;
+      }
+
+      const found = await Promise.all(
+        entries
+          .filter(e => e.isDirectory())
+          .map(async e => {
+            const files = await fs.readdir(path.join(dir, e.name)).catch(() => []); // ignore unreadable sub‐dir
+            return files.some(f => certExt.test(f));
+          }),
+      );
+
+      if (found.some(Boolean)) {
+        return true;
       }
     }
+
     return false;
   }
 

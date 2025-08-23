@@ -377,12 +377,18 @@ describe('aggregateTrack', () => {
   });
 });
 
+async function prepareCerts(tmpHome: string, subdir?: string, files: Array<[string, string]> = []): Promise<void> {
+  const base = path.join(tmpHome, '.config', 'containers', 'certs.d', subdir ?? '');
+  await fs.mkdir(base, { recursive: true });
+  await Promise.all(files.map(([name, content]) => fs.writeFile(path.join(base, name), content)));
+}
+
 describe('hasCustomCertificates', () => {
   let tmpHome: string;
   let prevHome: string | undefined;
 
   beforeEach(async () => {
-    tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), 'pd-certs-test-'));
+    tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), 'pd-certs-'));
     prevHome = process.env['HOME'];
     process.env['HOME'] = tmpHome;
     process.env['XDG_CONFIG_HOME'] = path.join(tmpHome, '.config');
@@ -394,28 +400,31 @@ describe('hasCustomCertificates', () => {
     await fs.rm(tmpHome, { recursive: true, force: true });
   });
 
-  test('returns false when no cert dirs exist', async () => {
-    await expect(telemetry.hasCustomCertificates()).resolves.toBe(false);
-  });
+  const scenarios: Array<{
+    name: string;
+    setup: (tmp: string) => Promise<void>;
+    expected: boolean;
+  }> = [
+    { name: 'no cert dirs', setup: async (): Promise<void> => {}, expected: false },
+    {
+      name: 'certs.d exists but no subdirs',
+      setup: tmp => prepareCerts(tmp, undefined, [['note.txt', 'hello']]),
+      expected: false,
+    },
+    {
+      name: 'subdir without cert files',
+      setup: tmp => prepareCerts(tmp, 'example.com:5000', [['readme', 'no certs here']]),
+      expected: false,
+    },
+    {
+      name: 'ca.crt present in subdir',
+      setup: tmp => prepareCerts(tmp, 'registry.test:5001', [['ca.crt', '-----BEGIN CERTIFICATE-----\nDUMMY\n']]),
+      expected: true,
+    },
+  ];
 
-  test('returns false when certs.d exists but has no subdirs', async () => {
-    const dir = path.join(tmpHome, '.config', 'containers', 'certs.d');
-    await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(path.join(dir, 'note.txt'), 'hello');
-    await expect(telemetry.hasCustomCertificates()).resolves.toBe(false);
-  });
-
-  test('returns false when subdir exists but has no cert-like files', async () => {
-    const sub = path.join(tmpHome, '.config', 'containers', 'certs.d', 'example.com:5000');
-    await fs.mkdir(sub, { recursive: true });
-    await fs.writeFile(path.join(sub, 'readme'), 'no certs here');
-    await expect(telemetry.hasCustomCertificates()).resolves.toBe(false);
-  });
-
-  test('returns true when ca.crt present in a registry subdir', async () => {
-    const sub = path.join(tmpHome, '.config', 'containers', 'certs.d', 'registry.test:5001');
-    await fs.mkdir(sub, { recursive: true });
-    await fs.writeFile(path.join(sub, 'ca.crt'), '-----BEGIN CERTIFICATE-----\nDUMMY\n');
-    await expect(telemetry.hasCustomCertificates()).resolves.toBe(true);
+  test.each(scenarios)('$name', async ({ setup, expected }) => {
+    await setup(tmpHome);
+    await expect(telemetry.hasCustomCertificates()).resolves.toBe(expected);
   });
 });
