@@ -377,8 +377,13 @@ describe('aggregateTrack', () => {
   });
 });
 
+function safeSubdir(subdir?: string): string {
+  if (!subdir) return '';
+  return process.platform === 'win32' ? subdir.replace(/:/g, '_') : subdir;
+}
+
 async function prepareCerts(tmpHome: string, subdir?: string, files: Array<[string, string]> = []): Promise<void> {
-  const base = path.join(tmpHome, '.config', 'containers', 'certs.d', subdir ?? '');
+  const base = path.join(tmpHome, '.config', 'containers', 'certs.d', safeSubdir(subdir));
   await fs.mkdir(base, { recursive: true });
   await Promise.all(files.map(([name, content]) => fs.writeFile(path.join(base, name), content)));
 }
