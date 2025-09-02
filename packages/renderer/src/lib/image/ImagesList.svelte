@@ -347,6 +347,7 @@ const row = new TableRow<ImageInfoUI>({
         columns={columns}
         row={row}
         defaultSortColumn="Age"
+        enableLayoutConfiguration={true}
         on:update={(): ImageInfoUI[] => (images = images)}>
       </Table>
     {/if}
