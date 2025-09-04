@@ -476,3 +476,29 @@ test('Expect boolean record to be updated from checked to not checked', async ()
   // checkbox should not be checked anymore
   await vi.waitFor(() => expect(checkbox).not.toBeChecked());
 });
+
+test('Expect a password input when record is type string and format is password', async () => {
+  const record: IConfigurationPropertyRecordedSchema = {
+    id: 'record',
+    title: 'record',
+    parentId: 'parent.record',
+    description: 'record-description',
+    format: 'password',
+    type: 'string',
+  };
+  await awaitRender(record, {});
+  const passwordInput = screen.getByLabelText('password input-standard-record');
+  expect(passwordInput).toBeInTheDocument();
+  expect(passwordInput).toBeInstanceOf(HTMLInputElement);
+
+  // enter the value foobar from keyboard
+  await userEvent.click(passwordInput);
+  await userEvent.keyboard('foobar');
+
+  // check that the typed value is hidden
+  expect(passwordInput).toHaveAttribute('type', 'password');
+
+  // check that the name is properly set and the value too
+  expect(passwordInput).toHaveAttribute('name', 'record');
+  expect(passwordInput).toHaveValue('foobar');
+});
