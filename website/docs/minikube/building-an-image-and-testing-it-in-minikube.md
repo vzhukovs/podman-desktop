@@ -55,7 +55,7 @@ With Podman Desktop, you can build an image with your container engine, and test
 
 #### Verification
 
-1. Go to **Pods** from the left navigation pane.
+1. Go to **Kubernetes > Pods** from the left navigation pane.
 1. View the running `my-custom-image-container-pod` pod.
    ![running pod](img/my-custom-image-container-pod.png)
 1. Click the pod name to view its details and logs.

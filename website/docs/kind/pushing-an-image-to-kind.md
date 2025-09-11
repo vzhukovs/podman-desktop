@@ -57,5 +57,5 @@ Therefore, create a pod that uses the loaded image.
 1. Click **Play**.
    ![play a Kubernetes YAML](img/create-pod-from-kube-yaml.png)
 1. Click **Done**.
-1. View the created pod `verify-my-image` on the same page. The pod **STATUS** is **RUNNING**.
+1. Go to **Kubernetes > Pods**, and view the created pod `verify-my-image`. The pod **STATUS** is **RUNNING**.
    ![play a Kubernetes YAML](img/verify-my-image-pod-running.png)
