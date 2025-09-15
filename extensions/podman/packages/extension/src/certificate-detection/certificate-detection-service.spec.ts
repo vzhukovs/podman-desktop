@@ -57,18 +57,24 @@ describe('CertificateDetectionService', () => {
       isDirectory: (): boolean => true,
       isFile: (): boolean => false,
       isSymbolicLink: (): boolean => false,
+      isBlockDevice: (): boolean => false,
+      isCharacterDevice: (): boolean => false,
+      isFIFO: (): boolean => false,
+      isSocket: (): boolean => false,
+      path: registryName,
+      parentPath: '/etc/containers/certs.d',
     } as Dirent;
 
     vi.mocked(fs.access).mockResolvedValue();
     vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
       const pathStr = String(dirPath);
       if (pathStr === '/etc/containers/certs.d') {
-        return [mockDirent];
+        return [mockDirent] as unknown as Dirent<Buffer>[];
       }
       if (pathStr.includes(registryName)) {
-        return certFiles;
+        return certFiles as unknown as Dirent<Buffer>[];
       }
-      return [];
+      return [] as unknown as Dirent<Buffer>[];
     });
   };
 
@@ -125,24 +131,36 @@ describe('CertificateDetectionService', () => {
         isDirectory: (): boolean => true,
         isFile: (): boolean => false,
         isSymbolicLink: (): boolean => false,
-      };
+        isBlockDevice: (): boolean => false,
+        isCharacterDevice: (): boolean => false,
+        isFIFO: (): boolean => false,
+        isSocket: (): boolean => false,
+        path: 'registry.example.com',
+        parentPath: '/etc/containers/certs.d',
+      } as Dirent;
       const mockCertFile = {
         name: 'ca.crt',
         isDirectory: (): boolean => false,
         isFile: (): boolean => true,
         isSymbolicLink: (): boolean => false,
-      };
+        isBlockDevice: (): boolean => false,
+        isCharacterDevice: (): boolean => false,
+        isFIFO: (): boolean => false,
+        isSocket: (): boolean => false,
+        path: 'ca.crt',
+        parentPath: '/etc/containers/certs.d/registry.example.com',
+      } as Dirent;
 
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return [mockDirent] as Dirent[];
+          return [mockDirent] as unknown as Dirent<Buffer>[];
         }
         if (pathStr.includes('registry.example.com')) {
-          return [mockCertFile] as Dirent[];
+          return [mockCertFile] as unknown as Dirent<Buffer>[];
         }
-        return [] as Dirent[];
+        return [] as unknown as Dirent<Buffer>[];
       });
 
       const result = await service.detectCustomCertificates();
@@ -161,24 +179,36 @@ describe('CertificateDetectionService', () => {
         isDirectory: (): boolean => true,
         isFile: (): boolean => false,
         isSymbolicLink: (): boolean => false,
-      };
+        isBlockDevice: (): boolean => false,
+        isCharacterDevice: (): boolean => false,
+        isFIFO: (): boolean => false,
+        isSocket: (): boolean => false,
+        path: 'localhost:5000',
+        parentPath: '/home/user/.config/containers/certs.d',
+      } as Dirent;
       const mockCertFile = {
         name: 'server.cert',
         isDirectory: (): boolean => false,
         isFile: (): boolean => true,
         isSymbolicLink: (): boolean => false,
-      };
+        isBlockDevice: (): boolean => false,
+        isCharacterDevice: (): boolean => false,
+        isFIFO: (): boolean => false,
+        isSocket: (): boolean => false,
+        path: 'server.cert',
+        parentPath: '/home/user/.config/containers/certs.d/localhost:5000',
+      } as Dirent;
 
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr.includes('.config/containers/certs.d') && !pathStr.includes('localhost:5000')) {
-          return [mockDirent] as Dirent[];
+          return [mockDirent] as unknown as Dirent<Buffer>[];
         }
         if (pathStr.includes('localhost:5000')) {
-          return [mockCertFile] as Dirent[];
+          return [mockCertFile] as unknown as Dirent<Buffer>[];
         }
-        return [];
+        return [] as unknown as Dirent<Buffer>[];
       });
 
       const result = await service.detectCustomCertificates();
@@ -361,20 +391,38 @@ describe('CertificateDetectionService', () => {
           isDirectory: (): boolean => false,
           isFile: (): boolean => true,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'ca.crt',
+          parentPath: '/etc/containers/certs.d/registry.example.com',
         },
         {
           name: 'server.cert',
           isDirectory: (): boolean => false,
           isFile: (): boolean => true,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'server.cert',
+          parentPath: '/etc/containers/certs.d/registry.example.com',
         },
         {
           name: 'client.key',
           isDirectory: (): boolean => false,
           isFile: (): boolean => true,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'client.key',
+          parentPath: '/etc/containers/certs.d/registry.example.com',
         },
-      ];
+      ] as Dirent[];
 
       createMockFileSystemWithCerts('registry.example.com', mockFiles);
 
@@ -390,20 +438,38 @@ describe('CertificateDetectionService', () => {
           isDirectory: (): boolean => false,
           isFile: (): boolean => true,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'ca.crt',
+          parentPath: '/etc/containers/certs.d/registry.example.com',
         },
         {
           name: 'excluded.pem',
           isDirectory: (): boolean => false,
           isFile: (): boolean => true,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'excluded.pem',
+          parentPath: '/etc/containers/certs.d/registry.example.com',
         },
         {
           name: 'excluded.cer',
           isDirectory: (): boolean => false,
           isFile: (): boolean => true,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'excluded.cer',
+          parentPath: '/etc/containers/certs.d/registry.example.com',
         },
-      ];
+      ] as Dirent[];
 
       createMockFileSystemWithCerts('registry.example.com', mockFiles);
 
@@ -419,25 +485,37 @@ describe('CertificateDetectionService', () => {
           isDirectory: (): boolean => false,
           isFile: (): boolean => true,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'ca.crt',
+          parentPath: '/etc/containers/certs.d',
         },
         {
           name: 'registry.example.com',
           isDirectory: (): boolean => true,
           isFile: (): boolean => false,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'registry.example.com',
+          parentPath: '/etc/containers/certs.d',
         },
-      ];
+      ] as Dirent[];
 
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return mockFiles as Dirent[];
+          return mockFiles as unknown as Dirent<Buffer>[];
         }
         if (pathStr.includes('registry.example.com')) {
-          return [];
+          return [] as unknown as Dirent<Buffer>[];
         }
-        return [];
+        return [] as unknown as Dirent<Buffer>[];
       });
 
       const result = await service.detectCustomCertificates();
@@ -454,28 +532,46 @@ describe('CertificateDetectionService', () => {
           isDirectory: (): boolean => true,
           isFile: (): boolean => false,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'registry.example.com',
+          parentPath: '/etc/containers/certs.d',
         },
         {
           name: 'localhost',
           isDirectory: (): boolean => true,
           isFile: (): boolean => false,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'localhost',
+          parentPath: '/etc/containers/certs.d',
         },
         {
           name: 'example.com',
           isDirectory: (): boolean => true,
           isFile: (): boolean => false,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'example.com',
+          parentPath: '/etc/containers/certs.d',
         },
-      ];
+      ] as Dirent[];
 
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return validDirectories as unknown;
+          return validDirectories as unknown as Dirent<Buffer>[];
         }
-        return [];
+        return [] as unknown as Dirent<Buffer>[];
       });
 
       await service.detectCustomCertificates();
@@ -492,22 +588,34 @@ describe('CertificateDetectionService', () => {
           isDirectory: (): boolean => true,
           isFile: (): boolean => false,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'registry.example.com:5000',
+          parentPath: '/etc/containers/certs.d',
         },
         {
           name: 'localhost:8080',
           isDirectory: (): boolean => true,
           isFile: (): boolean => false,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'localhost:8080',
+          parentPath: '/etc/containers/certs.d',
         },
-      ];
+      ] as Dirent[];
 
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return validDirectories as unknown;
+          return validDirectories as unknown as Dirent<Buffer>[];
         }
-        return [];
+        return [] as unknown as Dirent<Buffer>[];
       });
 
       await service.detectCustomCertificates();
@@ -523,28 +631,46 @@ describe('CertificateDetectionService', () => {
           isDirectory: (): boolean => true,
           isFile: (): boolean => false,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: '.hidden',
+          parentPath: '/etc/containers/certs.d',
         },
         {
           name: '-invalid',
           isDirectory: (): boolean => true,
           isFile: (): boolean => false,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: '-invalid',
+          parentPath: '/etc/containers/certs.d',
         },
         {
           name: 'invalid_name',
           isDirectory: (): boolean => true,
           isFile: (): boolean => false,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'invalid_name',
+          parentPath: '/etc/containers/certs.d',
         },
-      ];
+      ] as Dirent[];
 
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return invalidDirectories as unknown;
+          return invalidDirectories as unknown as Dirent<Buffer>[];
         }
-        return [];
+        return [] as unknown as Dirent<Buffer>[];
       });
 
       await service.detectCustomCertificates();
@@ -561,22 +687,34 @@ describe('CertificateDetectionService', () => {
           isDirectory: (): boolean => true,
           isFile: (): boolean => false,
           isSymbolicLink: (): boolean => true,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'registry.example.com',
+          parentPath: '/etc/containers/certs.d',
         },
         {
           name: 'localhost',
           isDirectory: (): boolean => true,
           isFile: (): boolean => false,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'localhost',
+          parentPath: '/etc/containers/certs.d',
         },
-      ];
+      ] as Dirent[];
 
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return directories as unknown;
+          return directories as unknown as Dirent<Buffer>[];
         }
-        return [];
+        return [] as unknown as Dirent<Buffer>[];
       });
 
       await service.detectCustomCertificates();
@@ -596,24 +734,36 @@ describe('CertificateDetectionService', () => {
         isDirectory: (): boolean => true,
         isFile: (): boolean => false,
         isSymbolicLink: (): boolean => false,
-      };
+        isBlockDevice: (): boolean => false,
+        isCharacterDevice: (): boolean => false,
+        isFIFO: (): boolean => false,
+        isSocket: (): boolean => false,
+        path: 'registry.example.com',
+        parentPath: '/etc/containers/certs.d',
+      } as Dirent;
       const mockSymlinkFile = {
         name: 'symlink.crt',
         isDirectory: (): boolean => false,
         isFile: (): boolean => false,
         isSymbolicLink: (): boolean => true,
-      };
+        isBlockDevice: (): boolean => false,
+        isCharacterDevice: (): boolean => false,
+        isFIFO: (): boolean => false,
+        isSocket: (): boolean => false,
+        path: 'symlink.crt',
+        parentPath: '/etc/containers/certs.d/registry.example.com',
+      } as Dirent;
 
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return [mockDirent] as unknown;
+          return [mockDirent] as unknown as Dirent<Buffer>[];
         }
         if (pathStr.includes('registry.example.com')) {
-          return [mockSymlinkFile] as unknown;
+          return [mockSymlinkFile] as unknown as Dirent<Buffer>[];
         }
-        return [];
+        return [] as unknown as Dirent<Buffer>[];
       });
 
       const result = await serviceWithSymlinks.detectCustomCertificates();
@@ -629,20 +779,26 @@ describe('CertificateDetectionService', () => {
         isDirectory: (): boolean => true,
         isFile: (): boolean => false,
         isSymbolicLink: (): boolean => false,
-      };
+        isBlockDevice: (): boolean => false,
+        isCharacterDevice: (): boolean => false,
+        isFIFO: (): boolean => false,
+        isSocket: (): boolean => false,
+        path: 'registry.example.com',
+        parentPath: '/etc/containers/certs.d',
+      } as Dirent;
 
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return [mockDirent] as unknown;
+          return [mockDirent] as unknown as Dirent<Buffer>[];
         }
         if (pathStr.includes('registry.example.com')) {
           const error = new Error('Permission denied') as NodeJS.ErrnoException;
           error.code = 'EACCES';
           throw error;
         }
-        return [];
+        return [] as unknown as Dirent<Buffer>[];
       });
 
       const result = await service.detectCustomCertificates();
@@ -657,34 +813,52 @@ describe('CertificateDetectionService', () => {
           isDirectory: (): boolean => true,
           isFile: (): boolean => false,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'registry.example.com',
+          parentPath: '/etc/containers/certs.d',
         },
         {
           name: 'localhost',
           isDirectory: (): boolean => true,
           isFile: (): boolean => false,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'localhost',
+          parentPath: '/etc/containers/certs.d',
         },
-      ];
+      ] as Dirent[];
       const mockCertFile = {
         name: 'ca.crt',
         isDirectory: (): boolean => false,
         isFile: (): boolean => true,
         isSymbolicLink: (): boolean => false,
-      };
+        isBlockDevice: (): boolean => false,
+        isCharacterDevice: (): boolean => false,
+        isFIFO: (): boolean => false,
+        isSocket: (): boolean => false,
+        path: 'ca.crt',
+        parentPath: '/etc/containers/certs.d/localhost',
+      } as Dirent;
 
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return mockDirents as unknown;
+          return mockDirents as unknown as Dirent<Buffer>[];
         }
         if (pathStr.includes('registry.example.com')) {
           throw new Error('Permission denied');
         }
         if (pathStr.includes('localhost')) {
-          return [mockCertFile] as unknown;
+          return [mockCertFile] as unknown as Dirent<Buffer>[];
         }
-        return [];
+        return [] as unknown as Dirent<Buffer>[];
       });
 
       const result = await service.detectCustomCertificates();
@@ -714,20 +888,26 @@ describe('CertificateDetectionService', () => {
         isDirectory: (): boolean => true,
         isFile: (): boolean => false,
         isSymbolicLink: (): boolean => false,
-      };
+        isBlockDevice: (): boolean => false,
+        isCharacterDevice: (): boolean => false,
+        isFIFO: (): boolean => false,
+        isSocket: (): boolean => false,
+        path: 'registry.example.com',
+        parentPath: '/etc/containers/certs.d',
+      } as Dirent;
 
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return [mockDirent] as unknown;
+          return [mockDirent] as unknown as Dirent<Buffer>[];
         }
         if (pathStr.includes('registry.example.com')) {
           const error = new Error('Access denied') as NodeJS.ErrnoException;
           error.code = 'EACCES';
           throw error;
         }
-        return [];
+        return [] as unknown as Dirent<Buffer>[];
       });
 
       await serviceWithTelemetry.detectCustomCertificates();
@@ -748,20 +928,32 @@ describe('CertificateDetectionService', () => {
           isDirectory: (): boolean => true,
           isFile: (): boolean => false,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'registry1.example.com',
+          parentPath: '/etc/containers/certs.d',
         },
         {
           name: 'registry2.example.com',
           isDirectory: (): boolean => true,
           isFile: (): boolean => false,
           isSymbolicLink: (): boolean => false,
+          isBlockDevice: (): boolean => false,
+          isCharacterDevice: (): boolean => false,
+          isFIFO: (): boolean => false,
+          isSocket: (): boolean => false,
+          path: 'registry2.example.com',
+          parentPath: '/etc/containers/certs.d',
         },
-      ];
+      ] as Dirent[];
 
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return mockDirents as unknown;
+          return mockDirents as unknown as Dirent<Buffer>[];
         }
         if (pathStr.includes('registry1.example.com')) {
           const error = new Error('Error 1') as NodeJS.ErrnoException;
@@ -771,7 +963,7 @@ describe('CertificateDetectionService', () => {
         if (pathStr.includes('registry2.example.com')) {
           throw new Error('Error 2');
         }
-        return [];
+        return [] as unknown as Dirent<Buffer>[];
       });
 
       await serviceWithTelemetry.detectCustomCertificates();
