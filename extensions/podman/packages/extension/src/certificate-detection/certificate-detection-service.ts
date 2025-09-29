@@ -69,31 +69,36 @@ export class CertificateDetectionService {
   }
 
   async detectCustomCertificates(): Promise<CertificateDetectionResult> {
-    const startTime = Date.now();
+    if (this.config.enableTelemetry && this.telemetryLogger) {
+      const startTime = Date.now();
 
-    try {
-      const result = await this.performDetection();
-      result.scanDurationMs = Date.now() - startTime;
+      try {
+        const result = await this.performDetection();
+        result.scanDurationMs = Date.now() - startTime;
 
-      if (this.config.enableTelemetry && this.telemetryLogger) {
         await this.sendTelemetry(result);
-      }
 
-      return result;
-    } catch (error) {
-      const fallbackResult: CertificateDetectionResult = {
-        hasCustomCertificates: false,
-        certificateCount: 0,
-        scanDurationMs: Date.now() - startTime,
-        errors: [{ error: String(error) }],
-      };
+        return result;
+      } catch (error) {
+        const fallbackResult: CertificateDetectionResult = {
+          hasCustomCertificates: false,
+          certificateCount: 0,
+          scanDurationMs: Date.now() - startTime,
+          errors: [{ error: String(error) }],
+        };
 
-      if (this.config.enableTelemetry && this.telemetryLogger) {
         await this.sendTelemetry(fallbackResult);
-      }
 
-      return fallbackResult;
+        return fallbackResult;
+      }
     }
+
+    // return minimal result without scanning
+    return {
+      hasCustomCertificates: false,
+      certificateCount: 0,
+      scanDurationMs: 0,
+    };
   }
 
   private async performDetection(): Promise<CertificateDetectionResult> {
@@ -213,10 +218,6 @@ export class CertificateDetectionService {
   }
 
   private async sendTelemetry(result: CertificateDetectionResult): Promise<void> {
-    if (!this.telemetryLogger) {
-      return;
-    }
-
     const telemetryRecords = {
       using_custom_certificates: result.hasCustomCertificates,
       certificate_count: result.certificateCount,
@@ -234,7 +235,7 @@ export class CertificateDetectionService {
           .join('; ') ?? '',
     };
 
-    this.telemetryLogger.logUsage('custom_certs', telemetryRecords);
+    this.telemetryLogger!.logUsage('custom_certs', telemetryRecords);
   }
 
   updateConfig(config: Partial<CertificateDetectionConfig>): void {
