@@ -109,10 +109,29 @@ describe('CertificateDetectionService', () => {
   });
 
   describe('detectCustomCertificates', () => {
-    test('should return result with no certificates when directories do not exist', async () => {
+    test('should return minimal result when telemetry is disabled', async () => {
+      const noTelemetryConfig: Partial<CertificateDetectionConfig> = {
+        enableTelemetry: false,
+      };
+      const serviceWithoutTelemetry = new CertificateDetectionService(undefined, noTelemetryConfig);
+
+      const result = await serviceWithoutTelemetry.detectCustomCertificates();
+
+      expect(result).toMatchObject({
+        hasCustomCertificates: false,
+        certificateCount: 0,
+        scanDurationMs: 0,
+      });
+      // Verify no filesystem operations were performed
+      expect(fs.access).not.toHaveBeenCalled();
+      expect(fs.readdir).not.toHaveBeenCalled();
+    });
+
+    test('should return result with no certificates when directories do not exist and telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(fs.access).mockRejectedValue(new Error('ENOENT: no such file or directory'));
 
-      const result = await service.detectCustomCertificates();
+      const result = await serviceWithTelemetry.detectCustomCertificates();
 
       expect(result).toMatchObject({
         hasCustomCertificates: false,
@@ -125,7 +144,8 @@ describe('CertificateDetectionService', () => {
       });
     });
 
-    test('should detect certificates in system directory', async () => {
+    test('should detect certificates in system directory with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       const mockDirent = {
         name: 'registry.example.com',
         isDirectory: (): boolean => true,
@@ -163,7 +183,7 @@ describe('CertificateDetectionService', () => {
         return [] as unknown as Dirent<Buffer>[];
       });
 
-      const result = await service.detectCustomCertificates();
+      const result = await serviceWithTelemetry.detectCustomCertificates();
 
       expect(result).toMatchObject({
         hasCustomCertificates: true,
@@ -173,7 +193,8 @@ describe('CertificateDetectionService', () => {
       });
     });
 
-    test('should detect certificates in user directory', async () => {
+    test('should detect certificates in user directory with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       const mockDirent = {
         name: 'localhost:5000',
         isDirectory: (): boolean => true,
@@ -211,7 +232,7 @@ describe('CertificateDetectionService', () => {
         return [] as unknown as Dirent<Buffer>[];
       });
 
-      const result = await service.detectCustomCertificates();
+      const result = await serviceWithTelemetry.detectCustomCertificates();
 
       expect(result).toMatchObject({
         hasCustomCertificates: true,
@@ -219,11 +240,11 @@ describe('CertificateDetectionService', () => {
       });
     });
 
-    test('should handle scan timeout', async () => {
+    test('should handle scan timeout with telemetry enabled', async () => {
       const shortTimeoutConfig: Partial<CertificateDetectionConfig> = {
         scanTimeoutMs: 1,
       };
-      const serviceWithTimeout = new CertificateDetectionService(undefined, shortTimeoutConfig);
+      const serviceWithTimeout = new CertificateDetectionService(mockTelemetryLogger, shortTimeoutConfig);
 
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockImplementation(() => new Promise(resolve => setTimeout(() => resolve([]), 100)));
@@ -237,11 +258,12 @@ describe('CertificateDetectionService', () => {
       });
     });
 
-    test('should handle general errors gracefully', async () => {
+    test('should handle general errors gracefully with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockRejectedValue(new Error('Critical file system error'));
 
-      const result = await service.detectCustomCertificates();
+      const result = await serviceWithTelemetry.detectCustomCertificates();
 
       expect(result).toMatchObject({
         hasCustomCertificates: false,
@@ -288,11 +310,12 @@ describe('CertificateDetectionService', () => {
   });
 
   describe('platform detection', () => {
-    test('should detect Windows environment', async () => {
+    test('should detect Windows environment with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(env).isWindows = true;
       vi.mocked(fs.access).mockRejectedValue(new Error('ENOENT'));
 
-      const result = await service.detectCustomCertificates();
+      const result = await serviceWithTelemetry.detectCustomCertificates();
 
       expect(result).toMatchObject({
         isWindows: true,
@@ -301,11 +324,12 @@ describe('CertificateDetectionService', () => {
       });
     });
 
-    test('should detect macOS environment', async () => {
+    test('should detect macOS environment with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(env).isMac = true;
       vi.mocked(fs.access).mockRejectedValue(new Error('ENOENT'));
 
-      const result = await service.detectCustomCertificates();
+      const result = await serviceWithTelemetry.detectCustomCertificates();
 
       expect(result).toMatchObject({
         isWindows: false,
@@ -314,11 +338,12 @@ describe('CertificateDetectionService', () => {
       });
     });
 
-    test('should detect Linux environment', async () => {
+    test('should detect Linux environment with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(env).isLinux = true;
       vi.mocked(fs.access).mockRejectedValue(new Error('ENOENT'));
 
-      const result = await service.detectCustomCertificates();
+      const result = await serviceWithTelemetry.detectCustomCertificates();
 
       expect(result).toMatchObject({
         isWindows: false,
@@ -329,54 +354,58 @@ describe('CertificateDetectionService', () => {
   });
 
   describe('Windows/WSL2 path handling', () => {
-    test('should handle Windows paths correctly', async () => {
+    test('should handle Windows paths correctly with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(env).isWindows = true;
       vi.mocked(os.homedir).mockReturnValue('C:\\Users\\testuser');
 
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockResolvedValue([]);
 
-      const result = await service.detectCustomCertificates();
+      const result = await serviceWithTelemetry.detectCustomCertificates();
 
       expect(result.isWindows).toBe(true);
       expect(fs.access).toHaveBeenCalledWith('/etc/containers/certs.d', expect.any(Number));
       expect(fs.access).toHaveBeenCalledWith(expect.stringContaining('testuser'), expect.any(Number));
     });
 
-    test('should handle WSL2 paths correctly', async () => {
+    test('should handle WSL2 paths correctly with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(env).isWindows = true;
       vi.mocked(os.homedir).mockReturnValue('/mnt/c/Users/testuser');
 
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockResolvedValue([]);
 
-      await service.detectCustomCertificates();
+      await serviceWithTelemetry.detectCustomCertificates();
 
       expect(fs.access).toHaveBeenCalledWith('/etc/containers/certs.d', expect.any(Number));
       expect(fs.access).toHaveBeenCalledWith(expect.stringContaining('mnt/c/Users/testuser'), expect.any(Number));
     });
 
-    test('should handle macOS paths correctly', async () => {
+    test('should handle macOS paths correctly with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(env).isMac = true;
       vi.mocked(os.homedir).mockReturnValue('/Users/testuser');
 
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockResolvedValue([]);
 
-      await service.detectCustomCertificates();
+      await serviceWithTelemetry.detectCustomCertificates();
 
       expect(fs.access).toHaveBeenCalledWith('/etc/containers/certs.d', expect.any(Number));
       expect(fs.access).toHaveBeenCalledWith(expect.stringContaining('Users/testuser'), expect.any(Number));
     });
 
-    test('should handle Linux paths correctly', async () => {
+    test('should handle Linux paths correctly with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(env).isLinux = true;
       vi.mocked(os.homedir).mockReturnValue('/home/testuser');
 
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockResolvedValue([]);
 
-      await service.detectCustomCertificates();
+      await serviceWithTelemetry.detectCustomCertificates();
 
       expect(fs.access).toHaveBeenCalledWith('/etc/containers/certs.d', expect.any(Number));
       expect(fs.access).toHaveBeenCalledWith(expect.stringContaining('home/testuser'), expect.any(Number));
@@ -384,7 +413,8 @@ describe('CertificateDetectionService', () => {
   });
 
   describe('certificate file validation', () => {
-    test('should count valid certificate extensions', async () => {
+    test('should count valid certificate extensions with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       const mockFiles = [
         {
           name: 'ca.crt',
@@ -426,12 +456,13 @@ describe('CertificateDetectionService', () => {
 
       createMockFileSystemWithCerts('registry.example.com', mockFiles);
 
-      const result = await service.detectCustomCertificates();
+      const result = await serviceWithTelemetry.detectCustomCertificates();
 
       expect(result.certificateCount).toBe(3);
     });
 
-    test('should exclude files with excluded extensions', async () => {
+    test('should exclude files with excluded extensions with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       const mockFiles = [
         {
           name: 'ca.crt',
@@ -473,12 +504,13 @@ describe('CertificateDetectionService', () => {
 
       createMockFileSystemWithCerts('registry.example.com', mockFiles);
 
-      const result = await service.detectCustomCertificates();
+      const result = await serviceWithTelemetry.detectCustomCertificates();
 
       expect(result.certificateCount).toBe(1);
     });
 
-    test('should ignore files in root directory (depth 0)', async () => {
+    test('should ignore files in root directory (depth 0) with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       const mockFiles = [
         {
           name: 'ca.crt',
@@ -518,14 +550,15 @@ describe('CertificateDetectionService', () => {
         return [] as unknown as Dirent<Buffer>[];
       });
 
-      const result = await service.detectCustomCertificates();
+      const result = await serviceWithTelemetry.detectCustomCertificates();
 
       expect(result.certificateCount).toBe(0);
     });
   });
 
   describe('registry directory validation', () => {
-    test('should accept valid hostname formats', async () => {
+    test('should accept valid hostname formats with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       const validDirectories = [
         {
           name: 'registry.example.com',
@@ -574,14 +607,15 @@ describe('CertificateDetectionService', () => {
         return [] as unknown as Dirent<Buffer>[];
       });
 
-      await service.detectCustomCertificates();
+      await serviceWithTelemetry.detectCustomCertificates();
 
       expect(fs.readdir).toHaveBeenCalledWith(expect.stringContaining('registry.example.com'), expect.any(Object));
       expect(fs.readdir).toHaveBeenCalledWith(expect.stringContaining('localhost'), expect.any(Object));
       expect(fs.readdir).toHaveBeenCalledWith(expect.stringContaining('example.com'), expect.any(Object));
     });
 
-    test('should accept valid hostname:port formats', async () => {
+    test('should accept valid hostname:port formats with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       const validDirectories = [
         {
           name: 'registry.example.com:5000',
@@ -618,13 +652,14 @@ describe('CertificateDetectionService', () => {
         return [] as unknown as Dirent<Buffer>[];
       });
 
-      await service.detectCustomCertificates();
+      await serviceWithTelemetry.detectCustomCertificates();
 
       expect(fs.readdir).toHaveBeenCalledWith(expect.stringContaining('registry.example.com:5000'), expect.any(Object));
       expect(fs.readdir).toHaveBeenCalledWith(expect.stringContaining('localhost:8080'), expect.any(Object));
     });
 
-    test('should reject invalid directory names', async () => {
+    test('should reject invalid directory names with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       const invalidDirectories = [
         {
           name: '.hidden',
@@ -673,14 +708,15 @@ describe('CertificateDetectionService', () => {
         return [] as unknown as Dirent<Buffer>[];
       });
 
-      await service.detectCustomCertificates();
+      await serviceWithTelemetry.detectCustomCertificates();
 
       expect(fs.readdir).not.toHaveBeenCalledWith(expect.stringContaining('.hidden'), expect.any(Object));
       expect(fs.readdir).not.toHaveBeenCalledWith(expect.stringContaining('-invalid'), expect.any(Object));
       expect(fs.readdir).not.toHaveBeenCalledWith(expect.stringContaining('invalid_name'), expect.any(Object));
     });
 
-    test('should ignore symbolic links by default', async () => {
+    test('should ignore symbolic links by default with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       const directories = [
         {
           name: 'registry.example.com',
@@ -717,17 +753,17 @@ describe('CertificateDetectionService', () => {
         return [] as unknown as Dirent<Buffer>[];
       });
 
-      await service.detectCustomCertificates();
+      await serviceWithTelemetry.detectCustomCertificates();
 
       expect(fs.readdir).not.toHaveBeenCalledWith(expect.stringContaining('registry.example.com'), expect.any(Object));
       expect(fs.readdir).toHaveBeenCalledWith(expect.stringContaining('localhost'), expect.any(Object));
     });
 
-    test('should follow symbolic links when configured', async () => {
+    test('should follow symbolic links when configured with telemetry enabled', async () => {
       const followSymlinksConfig: Partial<CertificateDetectionConfig> = {
         followSymlinks: true,
       };
-      const serviceWithSymlinks = new CertificateDetectionService(undefined, followSymlinksConfig);
+      const serviceWithSymlinks = new CertificateDetectionService(mockTelemetryLogger, followSymlinksConfig);
 
       const mockDirent = {
         name: 'registry.example.com',
@@ -773,7 +809,8 @@ describe('CertificateDetectionService', () => {
   });
 
   describe('error handling', () => {
-    test('should collect directory scan errors', async () => {
+    test('should collect directory scan errors with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       const mockDirent = {
         name: 'registry.example.com',
         isDirectory: (): boolean => true,
@@ -801,12 +838,13 @@ describe('CertificateDetectionService', () => {
         return [] as unknown as Dirent<Buffer>[];
       });
 
-      const result = await service.detectCustomCertificates();
+      const result = await serviceWithTelemetry.detectCustomCertificates();
 
       expect(result.errors).toEqual([{ error: 'Permission denied', code: 'EACCES' }]);
     });
 
-    test('should continue scanning after directory errors', async () => {
+    test('should continue scanning after directory errors with telemetry enabled', async () => {
+      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       const mockDirents = [
         {
           name: 'registry.example.com',
@@ -861,7 +899,7 @@ describe('CertificateDetectionService', () => {
         return [] as unknown as Dirent<Buffer>[];
       });
 
-      const result = await service.detectCustomCertificates();
+      const result = await serviceWithTelemetry.detectCustomCertificates();
 
       expect(result.certificateCount).toBe(1);
       expect(result.errors).toHaveLength(1);
