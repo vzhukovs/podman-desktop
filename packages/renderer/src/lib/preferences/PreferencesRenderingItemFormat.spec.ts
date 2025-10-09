@@ -350,12 +350,21 @@ test('Expect tooltip text shows info when input is less than minimum', async () 
     minimum: 1,
     maximum: 34,
   };
-  await awaitRender(record, {});
+  const { container } = render(PreferencesRenderingItemFormat, {
+    record,
+    initialValue: getInitialValue(record),
+  });
+  await tick();
+
   const input = screen.getByLabelText('record-description');
   await userEvent.click(input);
   await userEvent.clear(input);
   await userEvent.keyboard('0');
-  const tooltip = screen.getByLabelText('tooltip');
+
+  const tooltipSlot = container.querySelector('.tooltip-slot');
+  await userEvent.hover(tooltipSlot!);
+
+  const tooltip = await screen.findByLabelText('tooltip');
   expect(tooltip).toBeInTheDocument();
   expect(tooltip.textContent).toBe('The value cannot be less than 1');
 });
@@ -370,12 +379,21 @@ test('Expect tooltip text shows info when input is higher than maximum', async (
     minimum: 1,
     maximum: 34,
   };
-  await awaitRender(record, {});
+  const { container } = render(PreferencesRenderingItemFormat, {
+    record,
+    initialValue: getInitialValue(record),
+  });
+  await tick();
+
   const input = screen.getByLabelText('record-description');
   await userEvent.click(input);
   await userEvent.clear(input);
   await userEvent.keyboard('40');
-  const tooltip = screen.getByLabelText('tooltip');
+
+  const tooltipSlot = container.querySelector('.tooltip-slot');
+  await userEvent.hover(tooltipSlot!);
+
+  const tooltip = await screen.findByLabelText('tooltip');
   expect(tooltip).toBeInTheDocument();
   expect(tooltip.textContent).toBe('The value cannot be greater than 34');
 });
