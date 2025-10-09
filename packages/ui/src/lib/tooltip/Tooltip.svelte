@@ -78,6 +78,8 @@ async function updateTooltipPosition(): Promise<void> {
     ],
   });
 
+  if (!tooltipElement) return;
+
   Object.assign(tooltipElement.style, {
     left: `${x}px`,
     top: `${y}px`,
@@ -87,7 +89,7 @@ async function updateTooltipPosition(): Promise<void> {
 }
 
 function handleMouseEnter(): void {
-  if ($tooltipHidden ?? (!tip && !tipSnippet)) return;
+  if ($tooltipHidden || (!tip && !tipSnippet)) return;
 
   isVisible = true;
   isPositioned = false;

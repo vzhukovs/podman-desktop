@@ -18,7 +18,7 @@
 
 import '@testing-library/jest-dom/vitest';
 
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import { beforeEach, expect, test } from 'vitest';
 
 import ExtensionBadge from './ExtensionBadge.svelte';
@@ -33,11 +33,15 @@ test('Expect to have badge for dd Extension', async () => {
     removable: true,
     devMode: false,
   };
-  render(ExtensionBadge, { extension });
-  // expect 'Docker Desktop extension' badge
-  const labels = screen.getAllByText('Docker Desktop extension');
+  const { container } = render(ExtensionBadge, { extension });
 
-  // 2 items
+  const visibleLabel = screen.getByText('Docker Desktop extension');
+  expect(visibleLabel).toBeInTheDocument();
+
+  const tooltipSlot = container.querySelector('.tooltip-slot');
+  await fireEvent.mouseEnter(tooltipSlot!);
+
+  const labels = await screen.findAllByText('Docker Desktop extension');
   expect(labels).toHaveLength(2);
   expect(labels[0]).toBeInTheDocument();
   expect(labels[1]).toBeInTheDocument();
@@ -49,11 +53,15 @@ test('Expect to have badge for pd  built-in Extension', async () => {
     removable: false,
     devMode: false,
   };
-  render(ExtensionBadge, { extension });
-  // expect 'built-in' badge
-  const labels = screen.getAllByText('built-in Extension');
+  const { container } = render(ExtensionBadge, { extension });
 
-  // 2 items
+  const visibleLabel = screen.getByText('built-in Extension');
+  expect(visibleLabel).toBeInTheDocument();
+
+  const tooltipSlot = container.querySelector('.tooltip-slot');
+  await fireEvent.mouseEnter(tooltipSlot!);
+
+  const labels = await screen.findAllByText('built-in Extension');
   expect(labels).toHaveLength(2);
   expect(labels[0]).toBeInTheDocument();
   expect(labels[1]).toBeInTheDocument();
@@ -65,11 +73,15 @@ test('Expect to have badge for devMode Extension', async () => {
     removable: false,
     devMode: true,
   };
-  render(ExtensionBadge, { extension });
-  // expect 'devMode' badge
-  const labels = screen.getAllByText('In Development Mode Extension');
+  const { container } = render(ExtensionBadge, { extension });
 
-  // 2 items
-  expect(labels).toHaveLength(1);
-  expect(labels[0]).toBeInTheDocument();
+  const visibleLabel = screen.getByText('devMode Extension');
+  expect(visibleLabel).toBeInTheDocument();
+
+  const tooltipSlot = container.querySelector('.tooltip-slot');
+  expect(tooltipSlot).toBeInTheDocument();
+  await fireEvent.mouseEnter(tooltipSlot!);
+
+  const tooltip = await screen.findByText('In Development Mode Extension');
+  expect(tooltip).toBeInTheDocument();
 });

@@ -19,7 +19,7 @@
 import '@testing-library/jest-dom/vitest';
 
 import type { ContainerInfo, Port } from '@podman-desktop/api';
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, beforeAll, beforeEach, expect, test, vi } from 'vitest';
 
 import PodColumnActions from './PodColumnActions.svelte';
@@ -81,8 +81,11 @@ test('Expect error message', async () => {
     actionError: 'Pod failed',
   };
 
-  render(PodColumnActions, { object: pod });
+  const { container } = render(PodColumnActions, { object: pod });
 
-  const error = screen.getByText('Pod failed');
+  const tooltipSlot = container.querySelector('.tooltip-slot');
+  await fireEvent.mouseEnter(tooltipSlot!);
+
+  const error = await screen.findByText('Pod failed');
   expect(error).toBeInTheDocument();
 });

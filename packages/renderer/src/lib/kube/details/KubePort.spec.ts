@@ -180,7 +180,7 @@ describe('port forwarding', () => {
   });
 
   test('non-TCP port should not display the forward action', async () => {
-    const { queryByTitle, getByText } = render(KubePort, {
+    const { queryByTitle, container, getByText } = render(KubePort, {
       namespace: 'dummy-ns',
       port: {
         displayValue: '80/UDP',
@@ -194,6 +194,9 @@ describe('port forwarding', () => {
 
     const port80 = queryByTitle('Forward port 80');
     expect(port80).toBeNull();
+
+    const tooltipSlot = container.querySelector('.tooltip-slot');
+    await fireEvent.mouseEnter(tooltipSlot!);
 
     const tooltip = getByText('UDP cannot be forwarded.');
     expect(tooltip).toBeDefined();

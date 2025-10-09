@@ -18,7 +18,7 @@
 
 import '@testing-library/jest-dom/vitest';
 
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import { expect, test } from 'vitest';
 
 import LabelSpec from './LabelSpec.svelte';
@@ -41,11 +41,15 @@ test('Expect basic styling', async () => {
 
 test('Expect tooltip', async () => {
   const tip = 'a tooltip';
-  render(LabelSpec, {
+  const { container } = render(LabelSpec, {
     name: 'label',
     tip: tip,
   });
-  const label = screen.getByText(tip);
+
+  const tooltipSlot = container.querySelector('.tooltip-slot');
+  await fireEvent.mouseEnter(tooltipSlot!);
+
+  const label = await screen.findByText(tip);
   expect(label).toBeInTheDocument();
   expect(label.parentElement?.firstChild).toBeInTheDocument();
 });

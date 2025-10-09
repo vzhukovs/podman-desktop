@@ -158,12 +158,15 @@ test('Expect that counter is rendered', async () => {
   counter = 4;
 
   // check tooltip is working if counter is updated
-  render(NavItem, { counter, tooltip, href, meta: { url: '/test' } as TinroRouteMeta });
+  const { container } = render(NavItem, { counter, tooltip, href, meta: { url: '/test' } as TinroRouteMeta });
 
   // get div with label tooltip
   const element2 = screen.getByLabelText('Foo');
   expect(element2).toBeInTheDocument();
 
-  // get text of the element
-  expect(element2.textContent).toContain('Foo (4)');
+  const tooltipSlot = container.querySelector('.tooltip-slot');
+  await fireEvent.mouseEnter(tooltipSlot!);
+
+  const tooltipContent = await screen.findByText(/Foo \(4\)/);
+  expect(tooltipContent).toBeInTheDocument();
 });

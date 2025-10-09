@@ -156,9 +156,13 @@ test('Expect Sign In button to be visible when there is only one session request
   authenticationProviders.set(testProvidersInfoWithSessionRequests);
   const requestSignInMock = vi.fn();
   (window as any).requestAuthenticationProviderSignIn = requestSignInMock;
-  render(PreferencesAuthenticationProvidersRendering, {});
+  const { container } = render(PreferencesAuthenticationProvidersRendering, {});
   const menuButton = screen.getByRole('button', { name: 'Sign in' });
-  const tooltip = screen.getByText('Sign in to use Extension Label');
+
+  const tooltipSlot = container.querySelector('.tooltip-slot');
+  await fireEvent.mouseEnter(tooltipSlot!);
+
+  const tooltip = await screen.findByText('Sign in to use Extension Label');
   expect(tooltip).toBeInTheDocument();
   await fireEvent.click(menuButton);
   expect(requestSignInMock).toBeCalled();

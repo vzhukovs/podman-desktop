@@ -20,7 +20,7 @@
 
 import '@testing-library/jest-dom/vitest';
 
-import { render, screen, waitFor } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { readable, type Writable, writable } from 'svelte/store';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -180,9 +180,14 @@ describe.each<{
 
   test('expect no tooltip when no error', async () => {
     setState({ reachable: true });
-    render(KubernetesCurrentContextConnectionBadge);
+    const { container } = render(KubernetesCurrentContextConnectionBadge);
 
     await tick();
+
+    const tooltipSlot = container.querySelector('.tooltip-slot');
+    if (tooltipSlot) {
+      await fireEvent.mouseEnter(tooltipSlot);
+    }
 
     await vi.waitFor(() => {
       const tooltip = screen.queryByLabelText('tooltip');
@@ -192,7 +197,14 @@ describe.each<{
 
   test('expect tooltip when error', async () => {
     setState({ reachable: false, error: 'error message' });
-    render(KubernetesCurrentContextConnectionBadge);
+    const { container } = render(KubernetesCurrentContextConnectionBadge);
+
+    await vi.waitFor(() => {
+      expect(screen.getByRole('status')).toBeInTheDocument();
+    });
+
+    const tooltipSlot = container.querySelector('.tooltip-slot');
+    await fireEvent.mouseEnter(tooltipSlot!);
 
     await vi.waitFor(() => {
       const tooltip = screen.getByLabelText('tooltip');
@@ -207,7 +219,14 @@ describe.each<{
     },
     async () => {
       setState({ reachable: true, offline: true });
-      render(KubernetesCurrentContextConnectionBadge);
+      const { container } = render(KubernetesCurrentContextConnectionBadge);
+
+      await vi.waitFor(() => {
+        expect(screen.getByRole('status')).toBeInTheDocument();
+      });
+
+      const tooltipSlot = container.querySelector('.tooltip-slot');
+      await fireEvent.mouseEnter(tooltipSlot!);
 
       await vi.waitFor(() => {
         const tooltip = screen.getByLabelText('tooltip');
