@@ -62,6 +62,7 @@ import type { ContainerStatsInfo } from '/@api/container-stats-info';
 import type { ContributionInfo } from '/@api/contribution-info';
 import type { MessageBoxOptions, MessageBoxReturnValue } from '/@api/dialog';
 import type { DockerSocketMappingStatusInfo } from '/@api/docker-compatibility-info';
+import type { DocumentationInfo } from '/@api/documentation-info';
 import type { ExploreFeature } from '/@api/explore-feature';
 import type { ExtensionDevelopmentFolderInfo } from '/@api/extension-development-folders-info';
 import type { ExtensionInfo } from '/@api/extension-info';
@@ -90,6 +91,7 @@ import type { NetworkInspectInfo } from '/@api/network-info';
 import type { NotificationCard, NotificationCardOptions } from '/@api/notification';
 import type { OnboardingInfo, OnboardingStatus } from '/@api/onboarding';
 import type { V1Route } from '/@api/openshift-types';
+import type { PodCreateOptions, PodInfo, PodInspectInfo } from '/@api/pod-info';
 import type {
   PreflightCheckEvent,
   PreflightChecksCallback,
@@ -111,7 +113,6 @@ import type { ListOrganizerItem } from '../../api/src/list-organizer';
 import type { ApiSenderType } from '../../main/src/plugin/api';
 import type { ContextInfo } from '../../main/src/plugin/api/context-info';
 import type { KubernetesGeneratorInfo } from '../../main/src/plugin/api/KubernetesGeneratorInfo';
-import type { PodCreateOptions, PodInfo, PodInspectInfo } from '../../main/src/plugin/api/pod-info';
 import type { AuthenticationProviderInfo } from '../../main/src/plugin/authentication';
 import type {
   ContainerCreateOptions as PodmanContainerCreateOptions,
@@ -1614,6 +1615,14 @@ export function initExposure(): void {
     return ipcInvoke('catalog:refreshExtensions');
   });
 
+  contextBridge.exposeInMainWorld('getDocumentationItems', async (): Promise<DocumentationInfo[]> => {
+    return ipcInvoke('documentation:getItems');
+  });
+
+  contextBridge.exposeInMainWorld('refreshDocumentationItems', async (): Promise<void> => {
+    return ipcInvoke('documentation:refresh');
+  });
+
   contextBridge.exposeInMainWorld('getCommandPaletteCommands', async (): Promise<CommandInfo[]> => {
     return ipcInvoke('commands:getCommandPaletteCommands');
   });
@@ -2436,6 +2445,14 @@ export function initExposure(): void {
   });
   contextBridge.exposeInMainWorld('makeDefaultWebviewVisible', async (webviewId: string): Promise<void> => {
     return ipcInvoke('webviewRegistry:makeDefaultWebviewVisible', webviewId);
+  });
+
+  contextBridge.exposeInMainWorld('registerWebviewDevTools', async (webcontentId: number): Promise<void> => {
+    return ipcInvoke('webview:devtools:register', webcontentId);
+  });
+
+  contextBridge.exposeInMainWorld('cleanupWebviewDevTools', async (webcontentId: number): Promise<void> => {
+    return ipcInvoke('webview:devtools:cleanup', webcontentId);
   });
 
   contextBridge.exposeInMainWorld(

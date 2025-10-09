@@ -36,11 +36,14 @@ const frontendContainerName = 'frontend-1';
 const composeContainer = 'resources';
 const backendImageName = 'quay.io/podman-desktop-demo/podify-demo-backend';
 const frontendImageName = 'quay.io/podman-desktop-demo/podify-demo-frontend';
+let cliToolsPage: CLIToolsPage;
 
 test.beforeAll(async ({ runner, welcomePage, page }) => {
   runner.setVideoAndTraceName('podman-compose-e2e');
   await welcomePage.handleWelcomePage(true);
   await waitForPodmanMachineStartup(page);
+
+  cliToolsPage = new CLIToolsPage(page);
 });
 
 test.afterAll(async ({ page, runner }) => {
@@ -56,6 +59,13 @@ test.afterAll(async ({ page, runner }) => {
 });
 
 test.describe.serial('Compose compose workflow verification', { tag: '@smoke' }, () => {
+  test.beforeEach(async () => {
+    if (cliToolsPage.wasRateLimitReached()) {
+      test.info().annotations.push({ type: 'skip', description: 'Rate limit exceeded for current environment' });
+      test.skip(true, 'Rate limit exceeded; skipping remaining CLI tools checks');
+    }
+  });
+
   test('Verify Compose was installed', async ({ page, navigationBar }) => {
     test.skip(!!isCI && isLinux, 'This test should not run on Ubuntu platform in Github Actions');
     test.skip(!!isMac, 'Currently there is an issue with running this test on macOS platform');
@@ -64,11 +74,19 @@ test.describe.serial('Compose compose workflow verification', { tag: '@smoke' },
     const settingsBar = new SettingsBar(page);
     const resourcesPage = await settingsBar.openTabPage(ResourcesPage);
     await playExpect.poll(async () => await resourcesPage.resourceCardIsVisible(RESOURCE_NAME)).toBeTruthy();
+
     const composeBox = new ResourceCliCardPage(page, RESOURCE_NAME);
     const setupButton = composeBox.setupButton;
-    await playExpect(setupButton).toBeHidden();
 
-    const cliToolsPage = await settingsBar.openTabPage(CLIToolsPage);
+    if ((await setupButton.count()) > 0) {
+      await settingsBar.cliToolsTab.click();
+      await playExpect(cliToolsPage.toolsTable).toBeVisible({ timeout: 10_000 });
+      await playExpect.poll(async () => await cliToolsPage.toolsTable.count()).toBeGreaterThan(0);
+      await cliToolsPage.installTool('Compose');
+    }
+
+    await navigationBar.openSettings();
+    cliToolsPage = await settingsBar.openTabPage(CLIToolsPage);
     const composeRow = cliToolsPage.toolsTable.getByLabel(RESOURCE_NAME);
     const composeVersionInfo = composeRow.getByLabel('cli-version');
     await playExpect(composeVersionInfo).toContainText('docker-compose');

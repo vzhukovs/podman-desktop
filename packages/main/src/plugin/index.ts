@@ -84,6 +84,7 @@ import type { ContainerStatsInfo } from '/@api/container-stats-info.js';
 import type { ContributionInfo } from '/@api/contribution-info.js';
 import type { MessageBoxOptions, MessageBoxReturnValue } from '/@api/dialog.js';
 import type { DockerSocketMappingStatusInfo } from '/@api/docker-compatibility-info.js';
+import type { DocumentationInfo } from '/@api/documentation-info.js';
 import type { ExtensionDevelopmentFolderInfo } from '/@api/extension-development-folders-info.js';
 import type { ExtensionInfo } from '/@api/extension-info.js';
 import type { FeedbackProperties, GitHubIssue } from '/@api/feedback.js';
@@ -109,6 +110,7 @@ import type { NetworkInspectInfo } from '/@api/network-info.js';
 import type { NotificationCard, NotificationCardOptions } from '/@api/notification.js';
 import type { OnboardingInfo, OnboardingStatus } from '/@api/onboarding.js';
 import type { V1Route } from '/@api/openshift-types.js';
+import type { PodInfo, PodInspectInfo } from '/@api/pod-info.js';
 import type {
   PreflightCheckEvent,
   PreflightChecksCallback,
@@ -131,7 +133,6 @@ import { securityRestrictionCurrentHandler } from '../security-restrictions-hand
 import { TrayMenu } from '../tray-menu.js';
 import { isMac } from '../util.js';
 import { ApiSenderType } from './api.js';
-import type { PodInfo, PodInspectInfo } from './api/pod-info.js';
 import { AppearanceInit } from './appearance-init.js';
 import type { AuthenticationProviderInfo } from './authentication.js';
 import { AuthenticationImpl } from './authentication.js';
@@ -161,6 +162,7 @@ import type {
   ContainerCreateOptions as PodmanContainerCreateOptions,
   PlayKubeInfo,
 } from './dockerode/libpod-dockerode.js';
+import { DocumentationService } from './documentation/documentation-service.js';
 import { EditorInit } from './editor-init.js';
 import type { Emitter } from './events/emitter.js';
 import { ExperimentalConfigurationManager } from './experimental-configuration-manager.js';
@@ -212,6 +214,7 @@ import { Exec } from './util/exec.js';
 import { getFreePort, getFreePortRange, isFreePort } from './util/port.js';
 import { TaskConnectionUtils } from './util/task-connection-utils.js';
 import { ViewRegistry } from './view-registry.js';
+import { DevToolsManager } from './webview/devtools-manager.js';
 import { WebviewRegistry } from './webview/webview-registry.js';
 import { WelcomeInit } from './welcome/welcome-init.js';
 
@@ -683,6 +686,7 @@ export class PluginSystem {
     container.bind<ImageFilesRegistry>(ImageFilesRegistry).toSelf().inSingletonScope();
     container.bind<Troubleshooting>(Troubleshooting).toSelf().inSingletonScope();
     container.bind<ContributionManager>(ContributionManager).toSelf().inSingletonScope();
+    container.bind<DevToolsManager>(DevToolsManager).toSelf().inSingletonScope();
     container.bind<WebviewRegistry>(WebviewRegistry).toSelf().inSingletonScope();
 
     const webviewRegistry = container.get<WebviewRegistry>(WebviewRegistry);
@@ -728,6 +732,10 @@ export class PluginSystem {
     container.bind<ExtensionsCatalog>(ExtensionsCatalog).toSelf().inSingletonScope();
     const extensionsCatalog = container.get<ExtensionsCatalog>(ExtensionsCatalog);
     extensionsCatalog.init();
+
+    container.bind<DocumentationService>(DocumentationService).toSelf().inSingletonScope();
+    const documentationService = container.get<DocumentationService>(DocumentationService);
+
     container.bind<Featured>(Featured).toSelf().inSingletonScope();
     const featured = container.get<Featured>(Featured);
 
@@ -2159,6 +2167,14 @@ export class PluginSystem {
       return extensionsCatalog.refreshCatalog();
     });
 
+    this.ipcHandle('documentation:getItems', async (): Promise<DocumentationInfo[]> => {
+      return documentationService.getDocumentationItems();
+    });
+
+    this.ipcHandle('documentation:refresh', async (): Promise<void> => {
+      return documentationService.refreshDocumentation();
+    });
+
     this.ipcHandle('commands:getCommandPaletteCommands', async (): Promise<CommandInfo[]> => {
       return commandRegistry.getCommandPaletteCommands();
     });
@@ -2919,6 +2935,15 @@ export class PluginSystem {
     this.ipcHandle('viewRegistry:listViewsContributions', async (_listener): Promise<ViewInfoUI[]> => {
       return viewRegistry.listViewsContributions();
     });
+
+    this.ipcHandle('webview:devtools:register', async (_listener, webcontentId: number): Promise<void> => {
+      return webviewRegistry.registerWebviewDevTools(webcontentId);
+    });
+
+    this.ipcHandle('webview:devtools:cleanup', async (_listener, webcontentId: number): Promise<void> => {
+      return webviewRegistry.cleanupWebviewDevTools(webcontentId);
+    });
+
     this.ipcHandle('webviewRegistry:listWebviews', async (_listener): Promise<WebviewInfo[]> => {
       return webviewRegistry.listWebviews();
     });

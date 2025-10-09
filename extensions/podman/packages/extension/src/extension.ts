@@ -30,11 +30,11 @@ import { compareVersions } from 'compare-versions';
 import type { PodmanExtensionApi, PodmanRunOptions } from '../../api/src/podman-extension-api';
 import { SequenceCheck } from './checks/base-check';
 import { getDetectionChecks } from './checks/detection-checks';
-import { HyperVCheck } from './checks/hyperv-check';
-import { HyperVPodmanVersionCheck } from './checks/hyperv-podman-version-check';
 import { MacKrunkitPodmanMachineCreationCheck, MacPodmanInstallCheck } from './checks/macos-checks';
-import { WSLVersionCheck } from './checks/wsl-version-check';
-import { WSL2Check } from './checks/wsl2-check';
+import { HyperVCheck } from './checks/windows/hyperv-check';
+import { HyperVPodmanVersionCheck } from './checks/windows/hyperv-podman-version-check';
+import { WSLVersionCheck } from './checks/windows/wsl-version-check';
+import { WSL2Check } from './checks/windows/wsl2-check';
 import { PodmanCleanupMacOS } from './cleanup/podman-cleanup-macos';
 import { PodmanCleanupWindows } from './cleanup/podman-cleanup-windows';
 import { KrunkitHelper } from './helpers/krunkit-helper';
@@ -42,6 +42,7 @@ import { PodmanBinaryLocationHelper } from './helpers/podman-binary-location-hel
 import { PodmanInfoHelper } from './helpers/podman-info-helper';
 import { QemuHelper } from './helpers/qemu-helper';
 import { WslHelper } from './helpers/wsl-helper';
+import { InversifyBinding } from './inject/inversify-binding';
 import { PodmanInstall } from './installer/podman-install';
 import { PodmanRemoteConnections } from './remote/podman-remote-connections';
 import { getSocketCompatibility } from './utils/compatibility-mode';
@@ -64,6 +65,8 @@ import {
   VMTYPE,
 } from './utils/util';
 import { isDisguisedPodman } from './utils/warnings';
+
+let inversifyBinding: InversifyBinding | undefined;
 
 type StatusHandler = (name: string, event: extensionApi.ProviderConnectionStatus) => void;
 
@@ -1283,7 +1286,13 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
 
   initTelemetryLogger();
 
-  const podmanInstall = new PodmanInstall(extensionContext, telemetryLogger);
+  // create inversify binding for the extension
+  inversifyBinding = new InversifyBinding(extensionContext, telemetryLogger);
+  const inversifyContainer = await inversifyBinding.init();
+
+  // bind classes to the Inversify container
+  inversifyContainer.bind(PodmanInstall).toSelf().inSingletonScope();
+  const podmanInstall = inversifyContainer.get(PodmanInstall);
 
   const installedPodman = await getPodmanInstallation();
   const version: string | undefined = installedPodman?.version;
@@ -1881,6 +1890,9 @@ export async function deactivate(): Promise<void> {
   podmanMachinesInfo.clear();
   currentConnections.clear();
   containerProviderConnections.clear();
+
+  await inversifyBinding?.dispose();
+  inversifyBinding = undefined;
 }
 
 const PODMAN_MINIMUM_VERSION_FOR_NOW_FLAG_INIT = '4.0.0';
