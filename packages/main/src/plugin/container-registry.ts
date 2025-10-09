@@ -189,6 +189,8 @@ export class ContainerProviderRegistry {
         this.apiSender.send('pod-event');
       } else if (jsonEvent?.Type === 'volume') {
         this.apiSender.send('volume-event');
+      } else if (jsonEvent?.Type === 'network') {
+        this.apiSender.send('network-event');
       } else if (jsonEvent.status === 'remove' && jsonEvent?.Type === 'container') {
         this.apiSender.send('container-removed-event', jsonEvent.id);
       } else if (jsonEvent.status === 'pull' && jsonEvent?.Type === 'image') {
@@ -796,6 +798,35 @@ export class ContainerProviderRegistry {
       throw error;
     } finally {
       this.telemetryService.track('createNetwork', telemetryOptions);
+    }
+  }
+
+  async removeNetwork(engineId: string, networkId: string): Promise<void> {
+    let telemetryOptions = {};
+    try {
+      await this.getMatchingEngine(engineId).getNetwork(networkId).remove();
+    } catch (error) {
+      telemetryOptions = { error: error };
+      throw error;
+    } finally {
+      this.telemetryService.track('removeNetwork', telemetryOptions);
+    }
+  }
+
+  async updateNetwork(
+    engineId: string,
+    networkId: string,
+    addDNSServer: string[],
+    removeDNSServer: string[],
+  ): Promise<void> {
+    let telemetryOptions = {};
+    try {
+      await this.getMatchingPodmanEngineLibPod(engineId).updateNetwork(networkId, addDNSServer, removeDNSServer);
+    } catch (error) {
+      telemetryOptions = { error: error };
+      throw error;
+    } finally {
+      this.telemetryService.track('updateNetwork', telemetryOptions);
     }
   }
 
