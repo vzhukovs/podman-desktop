@@ -16,9 +16,9 @@
 #  SPDX-License-Identifier: Apache-2.0
 #  ***********************************************************************/
 
-summary: Execute Kubernetes-specific Playwright end-to-end tests.
+summary: Execute smoke Playwright end-to-end tests.
 tag:
-  - kubernetes
+  - smoke
 duration: 2h
 result: custom
 framework: shell
@@ -26,6 +26,6 @@ test: |
   set +e
   cd $TMT_TREE
   pnpm install
-  pnpm test:e2e:k8s
+  pnpm test:e2e:smoke
   EXIT_CODE=$?
-  bash "$TMT_TREE/tmt/scripts/create-results.sh" "$EXIT_CODE" "k8s"
+  bash "$TMT_TREE/tests/tmt/scripts/create-results.sh" "$EXIT_CODE" "smoke"
