@@ -24,6 +24,7 @@ import { assert, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { tooltipHidden } from './tooltip-store';
 import TooltipTestComponent from './TooltipTestComponent.svelte';
+import TooltipTestWithSnippet from './TooltipTestWithSnippet.svelte';
 
 vi.mock('@floating-ui/dom', () => ({
   computePosition: vi.fn((): Promise<{ x: number; y: number }> => Promise.resolve({ x: 100, y: 200 })),
@@ -242,8 +243,7 @@ describe('Tooltip', () => {
   });
 
   test('tooltip handles tipSnippet prop', async () => {
-    const TestComponent = await import('./TooltipTestWithSnippet.svelte');
-    const { container } = render(TestComponent.default);
+    const { container } = render(TooltipTestWithSnippet);
 
     const slot = container.querySelector('.tooltip-slot');
     assert(slot);
