@@ -19,7 +19,7 @@
 import '@testing-library/jest-dom/vitest';
 
 import { autoUpdate, computePosition } from '@floating-ui/dom';
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { assert, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { tooltipHidden } from './tooltip-store';
@@ -53,20 +53,20 @@ describe('Tooltip', () => {
     expect(slot).toBeInTheDocument();
     await fireEvent.mouseEnter(slot);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(screen.queryByText('test 1')).toBeInTheDocument();
     });
 
     tooltipHidden.set(true);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(screen.queryByText('test 1')).not.toBeInTheDocument();
     });
 
     tooltipHidden.set(false);
     await fireEvent.mouseEnter(slot);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(screen.queryByText('test 1')).toBeInTheDocument();
     });
   });
@@ -78,7 +78,7 @@ describe('Tooltip', () => {
     assert(slot);
     await fireEvent.mouseEnter(slot);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       const tooltipContainer = container.querySelector('.tooltip-content');
       expect(tooltipContainer).toHaveClass('z-[9999]');
     });
@@ -94,13 +94,13 @@ describe('Tooltip', () => {
 
     await fireEvent.mouseEnter(slot);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(screen.queryByText('hover text')).toBeInTheDocument();
     });
 
     await fireEvent.mouseLeave(slot);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(screen.queryByText('hover text')).not.toBeInTheDocument();
     });
   });
@@ -112,7 +112,7 @@ describe('Tooltip', () => {
     assert(slot);
     await fireEvent.mouseEnter(slot);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(computePosition).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
@@ -128,7 +128,7 @@ describe('Tooltip', () => {
     assert(slot);
     await fireEvent.mouseEnter(slot);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(computePosition).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
@@ -144,7 +144,7 @@ describe('Tooltip', () => {
     assert(slot);
     await fireEvent.mouseEnter(slot);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(computePosition).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
@@ -160,7 +160,7 @@ describe('Tooltip', () => {
     assert(slot);
     await fireEvent.mouseEnter(slot);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(computePosition).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
@@ -176,7 +176,7 @@ describe('Tooltip', () => {
     assert(slot);
     await fireEvent.mouseEnter(slot);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(computePosition).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
@@ -192,7 +192,7 @@ describe('Tooltip', () => {
     assert(slot);
     await fireEvent.mouseEnter(slot);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(computePosition).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
@@ -208,7 +208,7 @@ describe('Tooltip', () => {
     assert(slot);
     await fireEvent.mouseEnter(slot);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(computePosition).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
@@ -224,7 +224,7 @@ describe('Tooltip', () => {
     assert(slot);
     await fireEvent.mouseEnter(slot);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(autoUpdate).toHaveBeenCalled();
     });
   });
@@ -236,7 +236,7 @@ describe('Tooltip', () => {
     assert(slot);
     await fireEvent.mouseEnter(slot);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       const tooltipContainer = container.querySelector('.tooltip-content');
       expect(tooltipContainer).toHaveClass('tooltip-content');
     });
@@ -249,7 +249,7 @@ describe('Tooltip', () => {
     assert(slot);
     await fireEvent.mouseEnter(slot);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(screen.queryByText('Custom snippet content')).toBeInTheDocument();
     });
   });
@@ -272,7 +272,7 @@ describe('Tooltip', () => {
     assert(slot);
     await fireEvent.mouseEnter(slot);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(screen.getByLabelText('tooltip')).toBeInTheDocument();
     });
 
@@ -304,7 +304,7 @@ describe('Tooltip', () => {
     assert(slot);
     await fireEvent.mouseEnter(slot);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       const slotElement = screen.getByLabelText('tooltip');
       expect(slotElement).toHaveClass('my-[5px] mx-[10px]');
     });
