@@ -78,6 +78,7 @@ async function updateTooltipPosition(): Promise<void> {
     ],
   });
 
+  // Re-check after async operation - element may have been unmounted
   if (!tooltipElement) return;
 
   Object.assign(tooltipElement.style, {
