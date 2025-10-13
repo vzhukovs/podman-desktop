@@ -82,7 +82,14 @@ Based on your needs, perform any of the following actions after navigating to th
 ![pod actions](img/pods-actions.png)
 
 1. View the status of each container by hovering over it in the _CONTAINERS_ column. The status can be `Running`, `Created`, `Exited`, or `Waiting`.
-2. Create a pod from a Kubernetes YAML file using the **Play Kubernetes YAML** button.
+2. Create a Podman pod from a YAML configuration file using the **Podman Kube Play** button.
+
+   :::note
+
+   To create a Kubernetes pod, refer to the [Applying a YAML manifest](/docs/kubernetes/applying-a-yaml-manifest) section.
+
+   :::
+
 3. Use the overflow menu to:
    - _Kubernetes action_: Generate and view configuration for a Kubernetes pod.
    - _Kubernetes action_: Deploy a pod to a Kubernetes cluster.
