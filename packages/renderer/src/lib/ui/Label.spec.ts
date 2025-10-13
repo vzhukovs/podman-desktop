@@ -41,13 +41,13 @@ test('Expect basic styling', async () => {
 
 test('Expect tooltip', async () => {
   const tip = 'a tooltip';
-  const { container } = render(LabelSpec, {
+  render(LabelSpec, {
     name: 'label',
     tip: tip,
   });
 
-  const tooltipSlot = container.querySelector('.tooltip-slot');
-  await fireEvent.mouseEnter(tooltipSlot!);
+  const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+  await fireEvent.mouseEnter(tooltipTrigger);
 
   const label = await screen.findByText(tip);
   expect(label).toBeInTheDocument();

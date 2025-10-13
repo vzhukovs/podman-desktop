@@ -70,7 +70,7 @@ test('Expect checked', async () => {
 });
 
 test('Expect default tooltip', async () => {
-  const { container } = render(BuildImageFromContainerfileCard, {
+  render(BuildImageFromContainerfileCard, {
     title: 'ARM64',
     badge: 'arm64',
     isDefault: true,
@@ -79,9 +79,9 @@ test('Expect default tooltip', async () => {
     icon: undefined,
   });
 
-  const tooltipSlot = container.querySelector('.tooltip-slot');
-  expect(tooltipSlot).toBeInTheDocument();
-  await fireEvent.mouseEnter(tooltipSlot!);
+  const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+  expect(tooltipTrigger).toBeInTheDocument();
+  await fireEvent.mouseEnter(tooltipTrigger);
 
   const tooltip = await screen.findByText('Default platform of your computer');
   expect(tooltip).toBeInTheDocument();

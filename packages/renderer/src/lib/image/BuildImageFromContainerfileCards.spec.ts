@@ -37,7 +37,7 @@ test('check default on arm64', async () => {
   vi.mocked(window.getOsArch).mockResolvedValue('arm64');
 
   const platforms = '';
-  const { container } = render(BuildImageFromContainerfileCards, {
+  render(BuildImageFromContainerfileCards, {
     platforms,
   });
 
@@ -46,9 +46,9 @@ test('check default on arm64', async () => {
   const button = screen.getByRole('button', { name: 'linux/arm64' });
   expect(button).toBeInTheDocument();
 
-  const tooltipSlot = container.querySelector('.tooltip-slot');
-  expect(tooltipSlot).toBeInTheDocument();
-  await fireEvent.mouseEnter(tooltipSlot!);
+  const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+  expect(tooltipTrigger).toBeInTheDocument();
+  await fireEvent.mouseEnter(tooltipTrigger);
 
   const tooltip = await screen.findByText('Default platform of your computer');
   expect(tooltip).toBeInTheDocument();
@@ -58,7 +58,7 @@ test('check default on amd64', async () => {
   vi.mocked(window.getOsArch).mockResolvedValue('x64');
 
   const platforms = '';
-  const { container } = render(BuildImageFromContainerfileCards, {
+  render(BuildImageFromContainerfileCards, {
     platforms,
   });
 
@@ -67,9 +67,9 @@ test('check default on amd64', async () => {
   const button = screen.getByRole('button', { name: 'linux/amd64' });
   expect(button).toBeInTheDocument();
 
-  const tooltipSlot = container.querySelector('.tooltip-slot');
-  expect(tooltipSlot).toBeInTheDocument();
-  await fireEvent.mouseEnter(tooltipSlot!);
+  const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+  expect(tooltipTrigger).toBeInTheDocument();
+  await fireEvent.mouseEnter(tooltipTrigger);
 
   const tooltip = await screen.findByText('Default platform of your computer');
   expect(tooltip).toBeInTheDocument();

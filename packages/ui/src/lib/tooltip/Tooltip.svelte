@@ -129,6 +129,7 @@ $effect((): (() => void) => {
 <div class="relative inline-block" aria-label={ariaLabel}>
   <span
     role="none"
+    data-testid="tooltip-trigger"
     class="group tooltip-slot {className}"
     bind:this={referenceElement}
     onmouseenter={handleMouseEnter}

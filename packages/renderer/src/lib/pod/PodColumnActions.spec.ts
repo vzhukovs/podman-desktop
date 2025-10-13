@@ -81,10 +81,10 @@ test('Expect error message', async () => {
     actionError: 'Pod failed',
   };
 
-  const { container } = render(PodColumnActions, { object: pod });
+  render(PodColumnActions, { object: pod });
 
-  const tooltipSlot = container.querySelector('.tooltip-slot');
-  await fireEvent.mouseEnter(tooltipSlot!);
+  const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+  await fireEvent.mouseEnter(tooltipTrigger);
 
   const error = await screen.findByText('Pod failed');
   expect(error).toBeInTheDocument();

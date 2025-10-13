@@ -33,13 +33,13 @@ test('Expect to have badge for dd Extension', async () => {
     removable: true,
     devMode: false,
   };
-  const { container } = render(ExtensionBadge, { extension });
+  render(ExtensionBadge, { extension });
 
   const visibleLabel = screen.getByText('Docker Desktop extension');
   expect(visibleLabel).toBeInTheDocument();
 
-  const tooltipSlot = container.querySelector('.tooltip-slot');
-  await fireEvent.mouseEnter(tooltipSlot!);
+  const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+  await fireEvent.mouseEnter(tooltipTrigger);
 
   const labels = await screen.findAllByText('Docker Desktop extension');
   expect(labels).toHaveLength(2);
@@ -53,13 +53,13 @@ test('Expect to have badge for pd  built-in Extension', async () => {
     removable: false,
     devMode: false,
   };
-  const { container } = render(ExtensionBadge, { extension });
+  render(ExtensionBadge, { extension });
 
   const visibleLabel = screen.getByText('built-in Extension');
   expect(visibleLabel).toBeInTheDocument();
 
-  const tooltipSlot = container.querySelector('.tooltip-slot');
-  await fireEvent.mouseEnter(tooltipSlot!);
+  const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+  await fireEvent.mouseEnter(tooltipTrigger);
 
   const labels = await screen.findAllByText('built-in Extension');
   expect(labels).toHaveLength(2);
@@ -73,14 +73,14 @@ test('Expect to have badge for devMode Extension', async () => {
     removable: false,
     devMode: true,
   };
-  const { container } = render(ExtensionBadge, { extension });
+  render(ExtensionBadge, { extension });
 
   const visibleLabel = screen.getByText('devMode Extension');
   expect(visibleLabel).toBeInTheDocument();
 
-  const tooltipSlot = container.querySelector('.tooltip-slot');
-  expect(tooltipSlot).toBeInTheDocument();
-  await fireEvent.mouseEnter(tooltipSlot!);
+  const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+  expect(tooltipTrigger).toBeInTheDocument();
+  await fireEvent.mouseEnter(tooltipTrigger);
 
   const tooltip = await screen.findByText('In Development Mode Extension');
   expect(tooltip).toBeInTheDocument();

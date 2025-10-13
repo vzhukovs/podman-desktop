@@ -98,10 +98,10 @@ test('Expect tooltip to include container provider connections', async () => {
     { name: 'connection 2', status: 'ready' } as unknown as ProviderContainerConnectionInfo,
     { name: 'connection 3', status: 'stopped' } as unknown as ProviderContainerConnectionInfo,
   ];
-  const { container } = render(ProviderWidget, { entry: providerMock });
+  render(ProviderWidget, { entry: providerMock });
 
-  const tooltipSlot = container.querySelector('.tooltip-slot');
-  await fireEvent.mouseEnter(tooltipSlot!);
+  const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+  await fireEvent.mouseEnter(tooltipTrigger);
 
   expect(screen.getAllByText('Running').length).toBe(2);
   expect(screen.getAllByText('Off').length).toBe(1);
@@ -117,10 +117,10 @@ test('Expect tooltip to include Kubernetes provider connections', async () => {
     { name: 'connection 2', status: 'ready' } as unknown as ProviderKubernetesConnectionInfo,
     { name: 'connection 3', status: 'stopped' } as unknown as ProviderKubernetesConnectionInfo,
   ];
-  const { container } = render(ProviderWidget, { entry: providerMock });
+  render(ProviderWidget, { entry: providerMock });
 
-  const tooltipSlot = container.querySelector('.tooltip-slot');
-  await fireEvent.mouseEnter(tooltipSlot!);
+  const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+  await fireEvent.mouseEnter(tooltipTrigger);
 
   expect(screen.getAllByText('Running').length).toBe(2);
   expect(screen.getAllByText('Off').length).toBe(1);
@@ -136,10 +136,10 @@ test('Expect tooltip to include VM provider connections', async () => {
     { name: 'connection 2', status: 'ready' } as unknown as ProviderVmConnectionInfo,
     { name: 'connection 3', status: 'stopped' } as unknown as ProviderVmConnectionInfo,
   ];
-  const { container } = render(ProviderWidget, { entry: providerMock });
+  render(ProviderWidget, { entry: providerMock });
 
-  const tooltipSlot = container.querySelector('.tooltip-slot');
-  await fireEvent.mouseEnter(tooltipSlot!);
+  const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+  await fireEvent.mouseEnter(tooltipTrigger);
 
   expect(screen.getAllByText('Running').length).toBe(2);
   expect(screen.getAllByText('Off').length).toBe(1);
@@ -161,10 +161,10 @@ test('class props should be propagated to button', async () => {
 
 test('Expect tooltip to show Update available text if the provider has an update', async () => {
   providerMock.updateInfo = { version: '1.1.0' };
-  const { container } = render(ProviderWidget, { entry: providerMock });
+  render(ProviderWidget, { entry: providerMock });
 
-  const tooltipSlot = container.querySelector('.tooltip-slot');
-  await fireEvent.mouseEnter(tooltipSlot!);
+  const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+  await fireEvent.mouseEnter(tooltipTrigger);
 
   expect(screen.getByText('Update available')).toBeInTheDocument();
 });

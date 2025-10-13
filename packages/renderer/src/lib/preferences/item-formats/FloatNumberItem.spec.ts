@@ -37,7 +37,7 @@ test('Expect tooltip if value input is NaN', async () => {
     maximum: 34,
   };
   const value = 2;
-  const { container } = render(FloatNumberItem, { record, value });
+  render(FloatNumberItem, { record, value });
 
   const input = screen.getByLabelText('record-description');
   expect(input).toBeInTheDocument();
@@ -45,8 +45,8 @@ test('Expect tooltip if value input is NaN', async () => {
   await userEvent.clear(input);
   await userEvent.keyboard('unknown');
 
-  const tooltipSlot = container.querySelector('.tooltip-slot');
-  await userEvent.hover(tooltipSlot!);
+  const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+  await userEvent.hover(tooltipTrigger);
 
   const tooltip = await screen.findByLabelText('tooltip');
   expect(tooltip).toBeInTheDocument();

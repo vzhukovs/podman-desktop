@@ -180,13 +180,13 @@ describe.each<{
 
   test('expect no tooltip when no error', async () => {
     setState({ reachable: true });
-    const { container } = render(KubernetesCurrentContextConnectionBadge);
+    render(KubernetesCurrentContextConnectionBadge);
 
     await tick();
 
-    const tooltipSlot = container.querySelector('.tooltip-slot');
-    if (tooltipSlot) {
-      await fireEvent.mouseEnter(tooltipSlot);
+    const tooltipTrigger = screen.queryByTestId('tooltip-trigger');
+    if (tooltipTrigger) {
+      await fireEvent.mouseEnter(tooltipTrigger);
     }
 
     await vi.waitFor(() => {
@@ -197,14 +197,14 @@ describe.each<{
 
   test('expect tooltip when error', async () => {
     setState({ reachable: false, error: 'error message' });
-    const { container } = render(KubernetesCurrentContextConnectionBadge);
+    render(KubernetesCurrentContextConnectionBadge);
 
     await vi.waitFor(() => {
       expect(screen.getByRole('status')).toBeInTheDocument();
     });
 
-    const tooltipSlot = container.querySelector('.tooltip-slot');
-    await fireEvent.mouseEnter(tooltipSlot!);
+    const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+    await fireEvent.mouseEnter(tooltipTrigger);
 
     await vi.waitFor(() => {
       const tooltip = screen.getByLabelText('tooltip');
@@ -219,14 +219,14 @@ describe.each<{
     },
     async () => {
       setState({ reachable: true, offline: true });
-      const { container } = render(KubernetesCurrentContextConnectionBadge);
+      render(KubernetesCurrentContextConnectionBadge);
 
       await vi.waitFor(() => {
         expect(screen.getByRole('status')).toBeInTheDocument();
       });
 
-      const tooltipSlot = container.querySelector('.tooltip-slot');
-      await fireEvent.mouseEnter(tooltipSlot!);
+      const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+      await fireEvent.mouseEnter(tooltipTrigger);
 
       await vi.waitFor(() => {
         const tooltip = screen.getByLabelText('tooltip');

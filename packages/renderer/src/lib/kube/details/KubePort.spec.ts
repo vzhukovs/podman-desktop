@@ -18,7 +18,7 @@
 
 import '@testing-library/jest-dom/vitest';
 
-import { fireEvent, render } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { type ForwardConfig, WorkloadKind } from '/@api/kubernetes-port-forward-model';
@@ -180,7 +180,7 @@ describe('port forwarding', () => {
   });
 
   test('non-TCP port should not display the forward action', async () => {
-    const { queryByTitle, container, getByText } = render(KubePort, {
+    const { queryByTitle, getByText } = render(KubePort, {
       namespace: 'dummy-ns',
       port: {
         displayValue: '80/UDP',
@@ -195,8 +195,8 @@ describe('port forwarding', () => {
     const port80 = queryByTitle('Forward port 80');
     expect(port80).toBeNull();
 
-    const tooltipSlot = container.querySelector('.tooltip-slot');
-    await fireEvent.mouseEnter(tooltipSlot!);
+    const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+    await fireEvent.mouseEnter(tooltipTrigger);
 
     const tooltip = getByText('UDP cannot be forwarded.');
     expect(tooltip).toBeDefined();

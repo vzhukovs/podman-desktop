@@ -350,7 +350,7 @@ test('Expect tooltip text shows info when input is less than minimum', async () 
     minimum: 1,
     maximum: 34,
   };
-  const { container } = render(PreferencesRenderingItemFormat, {
+  render(PreferencesRenderingItemFormat, {
     record,
     initialValue: getInitialValue(record),
   });
@@ -361,8 +361,8 @@ test('Expect tooltip text shows info when input is less than minimum', async () 
   await userEvent.clear(input);
   await userEvent.keyboard('0');
 
-  const tooltipSlot = container.querySelector('.tooltip-slot');
-  await userEvent.hover(tooltipSlot!);
+  const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+  await userEvent.hover(tooltipTrigger);
 
   const tooltip = await screen.findByLabelText('tooltip');
   expect(tooltip).toBeInTheDocument();
@@ -379,7 +379,7 @@ test('Expect tooltip text shows info when input is higher than maximum', async (
     minimum: 1,
     maximum: 34,
   };
-  const { container } = render(PreferencesRenderingItemFormat, {
+  render(PreferencesRenderingItemFormat, {
     record,
     initialValue: getInitialValue(record),
   });
@@ -390,8 +390,8 @@ test('Expect tooltip text shows info when input is higher than maximum', async (
   await userEvent.clear(input);
   await userEvent.keyboard('40');
 
-  const tooltipSlot = container.querySelector('.tooltip-slot');
-  await userEvent.hover(tooltipSlot!);
+  const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+  await userEvent.hover(tooltipTrigger);
 
   const tooltip = await screen.findByLabelText('tooltip');
   expect(tooltip).toBeInTheDocument();

@@ -176,7 +176,7 @@ describe('CLI Tool item', () => {
   });
 
   test('check tool infos are displayed as expected and version is specified but there is no new version available', async () => {
-    const { container } = render(PreferencesCliTool, {
+    render(PreferencesCliTool, {
       cliTool: cliToolInfoItem2,
     });
     const nameElement = screen.getByLabelText('cli-name');
@@ -192,8 +192,8 @@ describe('CLI Tool item', () => {
     expect(versionElement).toBeDefined();
     expect(versionElement.textContent).equal(`${cliToolInfoItem2.name} v${cliToolInfoItem2.version}`);
 
-    const tooltipSlot = container.querySelector('.tooltip-slot');
-    await fireEvent.mouseEnter(tooltipSlot!);
+    const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+    await fireEvent.mouseEnter(tooltipTrigger);
 
     const displayFullPathElement = await screen.findByText('Path: path/to/tool-name-2');
     expect(displayFullPathElement).toBeInTheDocument();

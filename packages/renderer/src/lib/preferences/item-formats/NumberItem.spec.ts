@@ -41,7 +41,7 @@ test('Expect tooltip if value input is invalid', async () => {
     maximum: 34,
   };
   const value = 12;
-  const { container } = render(NumberItem, { record, value });
+  render(NumberItem, { record, value });
 
   const input = screen.getByLabelText('record-description');
   expect(input).toBeInTheDocument();
@@ -49,8 +49,8 @@ test('Expect tooltip if value input is invalid', async () => {
   await userEvent.clear(input);
   await userEvent.keyboard('5');
 
-  const tooltipSlot = container.querySelector('.tooltip-slot');
-  await userEvent.hover(tooltipSlot!);
+  const tooltipTrigger = screen.getByTestId('tooltip-trigger');
+  await userEvent.hover(tooltipTrigger);
 
   const tooltip = await screen.findByLabelText('tooltip');
   expect(tooltip).toBeInTheDocument();
