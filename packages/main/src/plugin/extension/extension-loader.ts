@@ -37,12 +37,12 @@ import type { Event } from '/@api/event.js';
 import type { ExtensionError, ExtensionInfo, ExtensionUpdateInfo } from '/@api/extension-info.js';
 import { DEFAULT_TIMEOUT, ExtensionLoaderSettings } from '/@api/extension-loader-settings.js';
 import type { ImageInspectInfo } from '/@api/image-inspect-info.js';
+import { PodInfo } from '/@api/pod-info.js';
 import { RepositoryInfoParser } from '/@api/repository-info-parser.js';
 
 import { securityRestrictionCurrentHandler } from '../../security-restrictions-handler.js';
 import { getBase64Image, isLinux, isMac, isWindows } from '../../util.js';
 import { ApiSenderType } from '../api.js';
-import type { PodInfo } from '../api/pod-info.js';
 import { AuthenticationImpl } from '../authentication.js';
 import { CancellationTokenSource } from '../cancellation-token.js';
 import { Certificates } from '../certificates.js';
@@ -1527,6 +1527,9 @@ export class ExtensionLoader implements AsyncDisposable {
         connection: containerDesktopAPI.ProviderContainerConnection,
       ): Promise<void> => {
         await this.navigationManager.navigateToEditProviderContainerConnection(connection);
+      },
+      navigateToCreateProviderConnection: async (providerId: string): Promise<void> => {
+        await this.navigationManager.navigateToCreateProviderConnection(providerId);
       },
       navigateToOnboarding: async (extensionId?: string): Promise<void> => {
         let onboardingExtensionId = extensionId;

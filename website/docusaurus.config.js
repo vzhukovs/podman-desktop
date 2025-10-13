@@ -3,6 +3,7 @@
 import { resolve } from 'node:path';
 import { createNotesFiles } from './release-notes-parser';
 import Storybook from './storybook';
+import { generateJsonOverviewFile } from './sidebar-content-parser';
 
 const lightCodeTheme = require('prism-react-renderer').themes.github;
 const darkCodeTheme = require('prism-react-renderer').themes.dracula;
@@ -339,6 +340,22 @@ const config = {
         id: 'tutorial',
         path: 'tutorial',
         routeBasePath: 'tutorial',
+
+        // Extract tutorial navigation using the navigation utils
+        /** @param {{ defaultSidebarItemsGenerator: any, [key: string]: any }} param0 */
+        async sidebarItemsGenerator({ defaultSidebarItemsGenerator, ...args }) {
+          const sidebarItems = await defaultSidebarItemsGenerator(args);
+
+          // Generate tutorials navigation using the utility function
+          await generateJsonOverviewFile(
+            sidebarItems,
+            'tutorial',
+            'https://podman-desktop.io',
+            './static/tutorials.json',
+          );
+
+          return sidebarItems;
+        },
       },
     ],
     './src/plugins/github-metadata-plugin.ts',
@@ -346,6 +363,7 @@ const config = {
       'docusaurus-plugin-typedoc',
       {
         id: 'api',
+        docsPath: 'api',
         plugin: ['typedoc-plugin-markdown'],
         entryPoints: [resolve('../packages/extension-api/src/extension-api.d.ts')],
         out: 'api',
@@ -374,6 +392,19 @@ const config = {
           sidebarCollapsed: false,
           sidebarPath: require.resolve('./sidebars.js'),
           editUrl: 'https://github.com/podman-desktop/podman-desktop/tree/main/website',
+
+          // Enhanced function to extract navigation using the navigation utils
+          /** @param {{ defaultSidebarItemsGenerator: any, [key: string]: any }} param0 */
+          async sidebarItemsGenerator({ defaultSidebarItemsGenerator, ...args }) {
+            // Get the default sidebar items (what Docusaurus normally generates)
+            const sidebarItems = await defaultSidebarItemsGenerator(args);
+
+            // Generate docs navigation using the utility function
+            await generateJsonOverviewFile(sidebarItems, 'docs', 'https://podman-desktop.io', './static/docs.json');
+
+            // Return the original sidebar items (unchanged)
+            return sidebarItems;
+          },
         },
         blog: {
           blogTitle: 'Podman Desktop blog!',

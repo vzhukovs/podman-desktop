@@ -24,6 +24,7 @@ import test, { expect as playExpect } from '@playwright/test';
 
 import { ResourceElementActions } from '../model/core/operations';
 import { ResourceElementState } from '../model/core/states';
+import type { PodmanVirtualizationProviders } from '../model/core/types';
 import { CLIToolsPage } from '../model/pages/cli-tools-page';
 import { ExperimentalPage } from '../model/pages/experimental-page';
 import { PreferencesPage } from '../model/pages/preferences-page';
@@ -296,12 +297,7 @@ export async function getVolumeNameForContainer(page: Page, containerName: strin
   });
 }
 
-export async function ensureCliInstalled(
-  page: Page,
-  resourceName: string,
-  timeout = 60_000,
-  version = '',
-): Promise<void> {
+export async function ensureCliInstalled(page: Page, resourceName: string, timeout = 60_000): Promise<void> {
   return test.step(`Ensure ${resourceName} CLI is installed`, async () => {
     const cliToolsPage = new CLIToolsPage(page);
     await playExpect(cliToolsPage.toolsTable).toBeVisible({ timeout: 10_000 });
@@ -309,7 +305,7 @@ export async function ensureCliInstalled(
     await playExpect(cliToolsPage.getToolRow(resourceName)).toBeVisible({ timeout: 10_000 });
 
     if (!(await cliToolsPage.getCurrentToolVersion(resourceName))) {
-      await cliToolsPage.installTool(resourceName, version, timeout);
+      await cliToolsPage.installTool(resourceName, timeout);
     }
 
     await playExpect
@@ -506,5 +502,28 @@ export async function readFileInVolumeFromCLI(volumeName: string, fileName: stri
     } catch (error) {
       throw new Error(`Error reading file: ${fileName} in volume: ${volumeName} from CLI: ${error}`);
     }
+  });
+}
+
+/**
+ * Verifies that a Podman machine has the specified virtualization provider type.
+ * This method checks that the machine card exists and displays the correct connection type.
+ *
+ * @param resourceConnectionCardPage - The resource connection card page to verify
+ * @param virtualizationProvider - The expected virtualization provider type (e.g., PodmanVirtualizationProviders.WSL, PodmanVirtualizationProviders.HyperV...)
+ * @returns A Promise that resolves when the verification is complete
+ * @throws Will throw an error if the expected virtualization provider is not found or doesn't match
+ */
+export async function verifyVirtualizationProvider(
+  resourceConnectionCardPage: ResourceConnectionCardPage,
+  virtualizationProvider: PodmanVirtualizationProviders,
+): Promise<void> {
+  return test.step(`Verify Podman Provider is ${virtualizationProvider}`, async () => {
+    await playExpect
+      .poll(async () => await resourceConnectionCardPage.doesResourceElementExist(), { timeout: 15_000 })
+      .toBeTruthy();
+    await playExpect(resourceConnectionCardPage.connectionType).toContainText(virtualizationProvider, {
+      ignoreCase: true,
+    });
   });
 }

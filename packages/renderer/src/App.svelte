@@ -27,7 +27,6 @@ import CronJobList from './lib/cronjob/CronJobList.svelte';
 import DashboardPage from './lib/dashboard/DashboardPage.svelte';
 import DeploymentDetails from './lib/deployments/DeploymentDetails.svelte';
 import DeploymentsList from './lib/deployments/DeploymentsList.svelte';
-import CommandPalette from './lib/dialogs/CommandPalette.svelte';
 import CustomPick from './lib/dialogs/CustomPick.svelte';
 import MessageBox from './lib/dialogs/MessageBox.svelte';
 import QuickPickInput from './lib/dialogs/QuickPickInput.svelte';
@@ -130,7 +129,6 @@ window.events?.receive('kubernetes-navigation', (args: unknown) => {
     <div class="flex flex-row w-full h-full overflow-hidden">
       <QuickPickInput />
       <CustomPick />
-      <CommandPalette />
       <MessageBox />
       <AppNavigation meta={meta} exitSettingsCallback={(): void => router.goto(nonSettingsPage)} />
       {#if meta.url.startsWith('/preferences')}
@@ -166,7 +164,7 @@ window.events?.receive('kubernetes-navigation', (args: unknown) => {
           </Route>
         </Route>
 
-        <Route path="/kube/play" breadcrumb="Play Kubernetes YAML">
+        <Route path="/kube/play" breadcrumb="Podman Kube Play">
           <KubePlayYAML />
         </Route>
         <Route path="/image/run/*" breadcrumb="Run Image">

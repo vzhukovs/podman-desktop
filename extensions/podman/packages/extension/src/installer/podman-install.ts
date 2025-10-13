@@ -17,11 +17,13 @@
  ***********************************************************************/
 import * as fs from 'node:fs';
 import { mkdir, readFile } from 'node:fs/promises';
-import * as os from 'node:os';
 import * as path from 'node:path';
 
 import * as extensionApi from '@podman-desktop/api';
 import { compare } from 'compare-versions';
+import { inject, injectable } from 'inversify';
+
+import { ExtensionContextSymbol, TelemetryLoggerSymbol } from '/@/inject/symbols';
 
 import { getDetectionChecks } from '../checks/detection-checks';
 import { PodmanCleanupMacOS } from '../cleanup/podman-cleanup-macos';
@@ -55,26 +57,29 @@ export interface UpdateCheck {
   bundledVersion?: string;
 }
 
+@injectable()
 export class PodmanInstall {
   private podmanInfo: PodmanInfo | undefined;
 
-  private installers = new Map<NodeJS.Platform, Installer>();
+  private installer: Installer | undefined;
 
   private readonly storagePath: string;
 
   protected providerCleanup: extensionApi.ProviderCleanup | undefined;
 
   constructor(
+    @inject(ExtensionContextSymbol)
     readonly extensionContext: extensionApi.ExtensionContext,
+    @inject(TelemetryLoggerSymbol)
     readonly telemetryLogger: extensionApi.TelemetryLogger,
   ) {
     this.storagePath = extensionContext.storagePath;
-    this.installers.set('win32', new WinInstaller(extensionContext, telemetryLogger));
-    this.installers.set('darwin', new MacOSInstaller());
     if (extensionApi.env.isMac) {
       this.providerCleanup = new PodmanCleanupMacOS();
+      this.installer = new MacOSInstaller();
     } else if (extensionApi.env.isWindows) {
       this.providerCleanup = new PodmanCleanupWindows();
+      this.installer = new WinInstaller(extensionContext, telemetryLogger);
     }
   }
 
@@ -346,11 +351,11 @@ export class PodmanInstall {
   }
 
   isAbleToInstall(): boolean {
-    return this.installers.has(os.platform());
+    return !!this.installer;
   }
 
   protected getInstaller(): Installer | undefined {
-    return this.installers.get(os.platform());
+    return this.installer;
   }
 
   private async installBundledPodman(): Promise<boolean> {

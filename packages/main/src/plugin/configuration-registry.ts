@@ -17,7 +17,9 @@
  ***********************************************************************/
 
 import * as fs from 'node:fs';
+import { promises as fsPromises } from 'node:fs';
 import * as path from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 
 import type * as containerDesktopAPI from '@podman-desktop/api';
 import { inject, injectable } from 'inversify';
@@ -75,19 +77,28 @@ export class ConfigurationRegistry implements IConfigurationRegistry {
     return path.resolve(this.directories.getConfigurationDirectory(), 'settings.json');
   }
 
-  public init(): NotificationCardOptions[] {
+  public async init(): Promise<NotificationCardOptions[]> {
     const notifications: NotificationCardOptions[] = [];
 
     const settingsFile = this.getSettingsFile();
     const parentDirectory = path.dirname(settingsFile);
-    if (!fs.existsSync(parentDirectory)) {
-      fs.mkdirSync(parentDirectory, { recursive: true });
-    }
-    if (!fs.existsSync(settingsFile)) {
-      fs.writeFileSync(settingsFile, JSON.stringify({}));
+
+    // Ensure the parent directory exists, we will use .access as the "best" way to check if the directory first exists
+    // this is different vs non-async functions such as fs.existsSync as well as mkdirSync / writeFileSync
+    try {
+      await fsPromises.access(parentDirectory);
+    } catch {
+      await fsPromises.mkdir(parentDirectory, { recursive: true });
     }
 
-    const settingsRawContent = fs.readFileSync(settingsFile, 'utf-8');
+    // We will create a "standard" empty settings.json file if the file we are trying to access does not exist.
+    try {
+      await fsPromises.access(settingsFile);
+    } catch {
+      await fsPromises.writeFile(settingsFile, JSON.stringify({}));
+    }
+
+    const settingsRawContent = await fsPromises.readFile(settingsFile, 'utf-8');
     let configData: { [key: string]: unknown };
     try {
       configData = JSON.parse(settingsRawContent);
@@ -96,7 +107,7 @@ export class ConfigurationRegistry implements IConfigurationRegistry {
 
       const backupFilename = `${settingsFile}.backup-${Date.now()}`;
       // keep original file as a backup
-      fs.cpSync(settingsFile, backupFilename);
+      await fsPromises.copyFile(settingsFile, backupFilename);
 
       // append notification for the user
       notifications.push({
@@ -275,7 +286,7 @@ export class ConfigurationRegistry implements IConfigurationRegistry {
     const cloneConfig = { ...this.configurationValues.get(CONFIGURATION_DEFAULT_SCOPE) };
     // for each key being already the default value, remove the entry
     Object.keys(cloneConfig)
-      .filter(key => cloneConfig[key] === this.configurationProperties[key]?.default)
+      .filter(key => isDeepStrictEqual(cloneConfig[key], this.configurationProperties[key]?.default))
       .filter(key => this.configurationProperties[key]?.type !== 'markdown')
       .forEach(key => {
         delete cloneConfig[key];

@@ -53,11 +53,11 @@ import { HttpServer } from './webview/webview-registry.js';
 let pluginSystem: TestPluginSystem;
 
 class TestPluginSystem extends PluginSystem {
-  override initConfigurationRegistry(
+  override async initConfigurationRegistry(
     container: InversifyContainer,
     notifications: NotificationCardOptions[],
     configurationRegistryEmitter: Emitter<ConfigurationRegistry>,
-  ): ConfigurationRegistry {
+  ): Promise<ConfigurationRegistry> {
     if (!container.isBound(ConfigurationRegistry)) {
       container.bind<ConfigurationRegistry>(ConfigurationRegistry).toSelf().inSingletonScope();
     }
@@ -85,6 +85,7 @@ beforeAll(async () => {
       app: {
         on: vi.fn(),
         getVersion: vi.fn(),
+        getAppPath: vi.fn().mockReturnValue('a-custom-appPath'),
       },
       clipboard: {
         writeText: vi.fn(),
@@ -168,7 +169,7 @@ test('Check SecurityRestrictions on Links and user accept', async () => {
 
   expect(showMessageBoxMock).toBeCalledWith({
     buttons: ['Yes', 'Copy link', 'Cancel'],
-    message: 'Are you sure you want to open the external website ?',
+    message: 'Are you sure you want to open the external website?',
     detail: 'https://www.my-custom-domain.io',
     cancelId: 2,
     title: 'Open External Website',
@@ -195,7 +196,7 @@ test('Check SecurityRestrictions on Links and user copy link', async () => {
 
   expect(showMessageBoxMock).toBeCalledWith({
     buttons: ['Yes', 'Copy link', 'Cancel'],
-    message: 'Are you sure you want to open the external website ?',
+    message: 'Are you sure you want to open the external website?',
     detail: 'https://www.my-custom-domain.io',
     title: 'Open External Website',
     cancelId: 2,
@@ -225,7 +226,7 @@ test('Check SecurityRestrictions on Links and user refuses', async () => {
   expect(showMessageBoxMock).toBeCalledWith({
     cancelId: 2,
     buttons: ['Yes', 'Copy link', 'Cancel'],
-    message: 'Are you sure you want to open the external website ?',
+    message: 'Are you sure you want to open the external website?',
     detail: 'https://www.my-custom-domain.io',
     title: 'Open External Website',
     type: 'question',
@@ -326,7 +327,7 @@ test('configurationRegistry propagated', async () => {
   inversifyContainer.bind<ApiSenderType>(ApiSenderType).toConstantValue(apiSenderMock);
   inversifyContainer.bind<Directories>(Directories).toConstantValue(directoriesMock);
 
-  const configurationRegistry = pluginSystem.initConfigurationRegistry(
+  const configurationRegistry = await pluginSystem.initConfigurationRegistry(
     inversifyContainer,
     notifications,
     configurationRegistryEmitter,
@@ -764,5 +765,30 @@ describe.each<{
     expect(errorMock).toHaveBeenCalledWith(rejectError);
     expect(originalTask.status).toEqual('in-progress');
     expect(originalTask.error).toEqual('Something went wrong while creating container provider: Error: an error');
+  });
+});
+
+describe('Log race condition fix', () => {
+  let pluginSystem: PluginSystem;
+
+  beforeEach(() => {
+    const trayMenu = {} as TrayMenu;
+    const mainWindowDeferred = Promise.withResolvers<BrowserWindow>();
+    pluginSystem = new PluginSystem(trayMenu, mainWindowDeferred);
+  });
+
+  test('should not throw error when window is destroyed during shutdown', () => {
+    vi.spyOn(pluginSystem, 'getWebContentsSender').mockImplementation(() => {
+      throw new Error('Unable to find the main window');
+    });
+    (pluginSystem as any).isQuitting = false;
+
+    const logger = pluginSystem.getLogHandler('test-channel', 'test-logger');
+    expect(() => {
+      logger.log('test');
+      logger.warn('test');
+      logger.error('test');
+      logger.onEnd();
+    }).not.toThrow();
   });
 });

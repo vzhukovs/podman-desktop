@@ -12,7 +12,8 @@ import {
 } from '@podman-desktop/ui-svelte';
 import { onMount } from 'svelte';
 
-import type { PodInfo } from '../../../../main/src/plugin/api/pod-info';
+import type { PodInfo } from '/@api/pod-info';
+
 import { filtered, podsInfos, searchPattern } from '../../stores/pods';
 import { providerInfos } from '../../stores/providers';
 import { withBulkConfirmation } from '../actions/BulkActions';
@@ -20,7 +21,7 @@ import type { EngineInfoUI } from '../engine/EngineInfoUI';
 import Prune from '../engine/Prune.svelte';
 import NoContainerEngineEmptyScreen from '../image/NoContainerEngineEmptyScreen.svelte';
 import PodIcon from '../images/PodIcon.svelte';
-import KubePlayButton from '../kube/KubePlayButton.svelte';
+import PodmanKubePlay from '../kube/PodmanKubePlay.svelte';
 import { PodUtils } from './pod-utils';
 import PodColumnActions from './PodColumnActions.svelte';
 import PodColumnContainers from './PodColumnContainers.svelte';
@@ -161,7 +162,7 @@ const row = new TableRow<PodInfoUI>({ selectable: (_pod): boolean => true });
       <Prune type="pods" engines={enginesList} />
     {/if}
     {#if providerPodmanConnections.length > 0}
-      <KubePlayButton />
+      <PodmanKubePlay />
     {/if}
   {/snippet}
 

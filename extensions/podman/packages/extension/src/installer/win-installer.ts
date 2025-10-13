@@ -17,20 +17,21 @@
  ********************************************************************/
 
 import fs from 'node:fs';
+import { arch } from 'node:os';
 import path from 'node:path';
 
 import type { ExtensionContext, InstallCheck, RunError, TelemetryLogger } from '@podman-desktop/api';
 import { process as processAPI, ProgressLocation, window } from '@podman-desktop/api';
 
 import { OrCheck, SequenceCheck } from '../checks/base-check';
-import { HyperVCheck } from '../checks/hyperv-check';
-import { VirtualMachinePlatformCheck } from '../checks/virtual-machine-platform-check';
-import { WinBitCheck } from '../checks/win-bit-check';
-import { WinMemoryCheck } from '../checks/win-memory-check';
-import { WinVersionCheck } from '../checks/win-version-check';
-import { WSLVersionCheck } from '../checks/wsl-version-check';
-import { WSL2Check } from '../checks/wsl2-check';
-import { getBundledPodmanVersion } from '../utils/podman-bundled';
+import { HyperVCheck } from '../checks/windows/hyperv-check';
+import { VirtualMachinePlatformCheck } from '../checks/windows/virtual-machine-platform-check';
+import { WinBitCheck } from '../checks/windows/win-bit-check';
+import { WinMemoryCheck } from '../checks/windows/win-memory-check';
+import { WinVersionCheck } from '../checks/windows/win-version-check';
+import { WSLVersionCheck } from '../checks/windows/wsl-version-check';
+import { WSL2Check } from '../checks/windows/wsl2-check';
+import podman5Json from '../podman5.json';
 import { getAssetsFolder } from '../utils/util';
 import { BaseInstaller } from './base-installer';
 
@@ -58,7 +59,7 @@ export class WinInstaller extends BaseInstaller {
           new WSLVersionCheck(),
           new WSL2Check(this.telemetryLogger, this.extensionContext),
         ]),
-        new HyperVCheck(this.telemetryLogger, true),
+        new HyperVCheck(this.telemetryLogger),
       ),
     ];
   }
@@ -70,7 +71,11 @@ export class WinInstaller extends BaseInstaller {
   install(): Promise<boolean> {
     return window.withProgress({ location: ProgressLocation.APP_ICON }, async progress => {
       progress.report({ increment: 5 });
-      const setupPath = path.resolve(getAssetsFolder(), `podman-${getBundledPodmanVersion()}-setup.exe`);
+      const fileName =
+        arch() === 'arm64'
+          ? podman5Json.platform.win32.arch.arm64.fileName
+          : podman5Json.platform.win32.arch.x64.fileName;
+      const setupPath = path.resolve(getAssetsFolder(), fileName);
       try {
         if (fs.existsSync(setupPath)) {
           try {

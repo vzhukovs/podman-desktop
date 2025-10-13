@@ -11,7 +11,12 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["node"]
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "types": ["node"],
+    "paths": {
+      "/@/*": ["./src/*"]
+    }
   },
   "include": ["src", "types/*.d.ts", "scripts"]
 }

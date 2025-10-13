@@ -19,6 +19,8 @@
 import test, { expect as playExpect } from '@playwright/test';
 import type { Locator, Page } from 'playwright';
 
+import { waitUntil } from '/@/utility/wait';
+
 import { handleConfirmationDialog } from '../../utility/operations';
 import { SettingsPage } from './settings-page';
 
@@ -30,6 +32,7 @@ export class CLIToolsPage extends SettingsPage {
   readonly toolsTable: Locator;
   readonly dropDownDialog: Locator;
   readonly versionInputField: Locator;
+  private rateLimitReachedFlag = false;
 
   constructor(page: Page) {
     super(page, 'CLI Tools');
@@ -40,6 +43,11 @@ export class CLIToolsPage extends SettingsPage {
     this.toolsTable = this.content.getByRole('table', { name: 'cli-tools' });
     this.dropDownDialog = page.getByRole('dialog', { name: 'drop-down-dialog' });
     this.versionInputField = this.dropDownDialog.getByRole('textbox');
+    this.attachRateLimitListener();
+  }
+
+  public wasRateLimitReached(): boolean {
+    return this.rateLimitReachedFlag;
   }
 
   public getToolRow(toolName: string): Locator {
@@ -89,18 +97,12 @@ export class CLIToolsPage extends SettingsPage {
     });
   }
 
-  public async installTool(toolName: string, version: string = '', timeout = 60_000): Promise<this> {
+  public async installTool(toolName: string, timeout = 60_000): Promise<this> {
     return test.step(`Install ${toolName}`, async () => {
       await playExpect(this.getInstallButton(toolName)).toBeEnabled();
       await this.getInstallButton(toolName).click();
-      await playExpect(this.dropDownDialog).toBeVisible();
-      if (!version) {
-        version = await this.getLatestVersionNumber();
-      }
 
-      await playExpect(this.getVersionSelectionButton(version)).toBeEnabled();
-      await this.getVersionSelectionButton(version).click();
-
+      await this.ensureAPIRateLimitNotReached();
       const confirmationDialog = this.page.getByRole('dialog', { name: toolName });
       try {
         await playExpect(confirmationDialog).toBeVisible();
@@ -109,39 +111,12 @@ export class CLIToolsPage extends SettingsPage {
         console.log(`Dialog for tool ${toolName} was not visible. Proceeding.`);
       }
 
-      await playExpect
-        .poll(async () => await this.getCurrentToolVersion(toolName), { timeout: timeout })
-        .toContain(version);
+      await playExpect.poll(async () => await this.getCurrentToolVersion(toolName), { timeout: timeout }).toBeTruthy();
       return this;
     });
   }
 
-  public async installToolWithSecondLatestVersion(toolName: string, timeout = 60_000): Promise<this> {
-    return test.step(`Install ${toolName} with second latest version`, async () => {
-      await playExpect(this.getInstallButton(toolName)).toBeEnabled();
-      await this.getInstallButton(toolName).click();
-      await playExpect(this.dropDownDialog).toBeVisible();
-
-      const version = await this.getSecondLatestVersionNumber();
-      await playExpect(this.getVersionSelectionButton(version)).toBeEnabled();
-      await this.getVersionSelectionButton(version).click();
-
-      const confirmationDialog = this.page.getByRole('dialog', { name: toolName });
-      try {
-        await playExpect(confirmationDialog).toBeVisible();
-        await handleConfirmationDialog(this.page, toolName);
-      } catch {
-        console.log(`Dialog for tool ${toolName} was not visible. Proceeding.`);
-      }
-
-      await playExpect
-        .poll(async () => await this.getCurrentToolVersion(toolName), { timeout: timeout })
-        .toContain(version);
-      return this;
-    });
-  }
-
-  public async uninstallTool(toolName: string): Promise<this> {
+  public async uninstallTool(toolName: string, timeout = 60_000): Promise<this> {
     return test.step(`Uninstall ${toolName}`, async () => {
       if ((await this.getUninstallButton(toolName).count()) === 0) {
         console.log(`Tool ${toolName} is not installed`);
@@ -151,6 +126,8 @@ export class CLIToolsPage extends SettingsPage {
       await playExpect(this.getUninstallButton(toolName)).toBeEnabled();
       await this.getUninstallButton(toolName).click();
       await handleConfirmationDialog(this.page, 'Uninstall');
+
+      await playExpect.poll(async () => await this.getCurrentToolVersion(toolName), { timeout: timeout }).toBeFalsy();
       return this;
     });
   }
@@ -169,15 +146,18 @@ export class CLIToolsPage extends SettingsPage {
 
       await playExpect(this.getDowngradeButton(toolName)).toBeEnabled();
       await this.getDowngradeButton(toolName).click();
+
+      await this.ensureAPIRateLimitNotReached();
       await playExpect(this.dropDownDialog).toBeVisible();
 
       if (!version) {
-        version = await this.getSecondLatestVersionNumber();
+        version = await this.getFirstDifferentVersionFromList(currentVersion);
       }
 
       await playExpect(this.getVersionSelectionButton(version)).toBeEnabled();
       await this.getVersionSelectionButton(version).click();
 
+      await this.ensureAPIRateLimitNotReached();
       await playExpect
         .poll(async () => await this.getCurrentToolVersion(toolName), { timeout: timeout })
         .toContain(version);
@@ -199,6 +179,8 @@ export class CLIToolsPage extends SettingsPage {
 
       await playExpect(this.getUpdateButton(toolName)).toBeEnabled();
       await this.getUpdateButton(toolName).click();
+
+      await this.ensureAPIRateLimitNotReached();
       await playExpect
         .poll(async () => await this.getCurrentToolVersion(toolName), { timeout: timeout })
         .not.toContain(currentVersion);
@@ -207,11 +189,34 @@ export class CLIToolsPage extends SettingsPage {
     });
   }
 
-  private async getLatestVersionNumber(): Promise<string> {
-    return await this.dropDownDialog.getByRole('button').first().innerText();
+  public async ensureAPIRateLimitNotReached(): Promise<void> {
+    await waitUntil(async () => this.wasRateLimitReached(), { timeout: 2_000, sendError: false });
+    if (this.rateLimitReachedFlag) {
+      console.log('Skipping test due to API rate limit being reached');
+      test.skip(true, 'Skipping test due to API rate limit being reached');
+    }
   }
 
-  private async getSecondLatestVersionNumber(): Promise<string> {
-    return await this.dropDownDialog.getByRole('button').nth(1).innerText();
+  private async getFirstDifferentVersionFromList(currentVersion = ''): Promise<string> {
+    if (!currentVersion) {
+      return this.dropDownDialog.getByRole('button').first().innerText();
+    } else {
+      const versionSplitInParts = currentVersion.split(' ');
+      const versionNumber = versionSplitInParts[versionSplitInParts.length - 1];
+      return this.dropDownDialog.getByRole('button').filter({ hasNotText: versionNumber }).first().innerText();
+    }
+  }
+
+  private attachRateLimitListener(): void {
+    this.page.on('console', msg => {
+      if (msg.text().includes('API rate limit exceeded')) {
+        console.log('Rate limit flag triggered!');
+        this.rateLimitReachedFlag = true;
+      }
+      if (msg.text().includes('/releases') && msg.text().includes('403 with id')) {
+        console.log('Could not fetch releases - assuming rate limit exceeded');
+        this.rateLimitReachedFlag = true;
+      }
+    });
   }
 }

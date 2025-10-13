@@ -54,6 +54,9 @@ export const handleNavigation = (request: InferredNavigationRequest<NavigationPa
     case NavigationPage.EXISTING_IMAGE_CREATE_CONTAINER:
       router.goto(`/images/existing-image-create-container`);
       break;
+    case NavigationPage.CONTAINER_SUMMARY:
+      router.goto(`/containers/${request.parameters.id}/summary`);
+      break;
     case NavigationPage.CONTAINER_LOGS:
       router.goto(`/containers/${request.parameters.id}/logs`);
       break;
@@ -94,6 +97,9 @@ export const handleNavigation = (request: InferredNavigationRequest<NavigationPa
     case NavigationPage.PODMAN_PODS:
       router.goto(`/pods`);
       break;
+    case NavigationPage.PODMAN_POD_SUMMARY:
+      router.goto(`/pods/podman/${request.parameters.name}/${request.parameters.engineId}/summary`);
+      break;
     case NavigationPage.PODMAN_POD:
       router.goto(`/pods/podman/${request.parameters.name}/${request.parameters.engineId}/`);
       break;
@@ -101,7 +107,7 @@ export const handleNavigation = (request: InferredNavigationRequest<NavigationPa
       router.goto('/volumes');
       break;
     case NavigationPage.VOLUME:
-      router.goto(`/volumes/${request.parameters.name}/`);
+      router.goto(`/volumes/${request.parameters.name}/${request.parameters.engineId}/summary`);
       break;
     case NavigationPage.CONTRIBUTION:
       router.goto(`/contribs/${request.parameters.name}/`);
@@ -132,6 +138,9 @@ export const handleNavigation = (request: InferredNavigationRequest<NavigationPa
       break;
     case NavigationPage.EXPERIMENTAL_FEATURES:
       router.goto('/preferences/experimental');
+      break;
+    case NavigationPage.CREATE_PROVIDER_CONNECTION:
+      router.goto(`/preferences/provider/${request.parameters.provider}`);
       break;
   }
 };

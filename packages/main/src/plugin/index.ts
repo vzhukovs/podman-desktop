@@ -84,6 +84,7 @@ import type { ContainerStatsInfo } from '/@api/container-stats-info.js';
 import type { ContributionInfo } from '/@api/contribution-info.js';
 import type { MessageBoxOptions, MessageBoxReturnValue } from '/@api/dialog.js';
 import type { DockerSocketMappingStatusInfo } from '/@api/docker-compatibility-info.js';
+import type { DocumentationInfo } from '/@api/documentation-info.js';
 import type { ExtensionDevelopmentFolderInfo } from '/@api/extension-development-folders-info.js';
 import type { ExtensionInfo } from '/@api/extension-info.js';
 import type { FeedbackProperties, GitHubIssue } from '/@api/feedback.js';
@@ -109,6 +110,7 @@ import type { NetworkInspectInfo } from '/@api/network-info.js';
 import type { NotificationCard, NotificationCardOptions } from '/@api/notification.js';
 import type { OnboardingInfo, OnboardingStatus } from '/@api/onboarding.js';
 import type { V1Route } from '/@api/openshift-types.js';
+import type { PodInfo, PodInspectInfo } from '/@api/pod-info.js';
 import type {
   PreflightCheckEvent,
   PreflightChecksCallback,
@@ -126,11 +128,11 @@ import type { ViewInfoUI } from '/@api/view-info.js';
 import type { VolumeInspectInfo, VolumeListInfo } from '/@api/volume-info.js';
 import type { WebviewInfo } from '/@api/webview-info.js';
 
+import type { ListOrganizerItem } from '../../../api/src/list-organizer.js';
 import { securityRestrictionCurrentHandler } from '../security-restrictions-handler.js';
 import { TrayMenu } from '../tray-menu.js';
 import { isMac } from '../util.js';
 import { ApiSenderType } from './api.js';
-import type { PodInfo, PodInspectInfo } from './api/pod-info.js';
 import { AppearanceInit } from './appearance-init.js';
 import type { AuthenticationProviderInfo } from './authentication.js';
 import { AuthenticationImpl } from './authentication.js';
@@ -151,6 +153,8 @@ import { ContributionManager } from './contribution-manager.js';
 import { CustomPickRegistry } from './custompick/custompick-registry.js';
 import { DialogRegistry } from './dialog-registry.js';
 import { Directories } from './directories.js';
+import { LegacyDirectories } from './directories-legacy.js';
+import { LinuxXDGDirectories } from './directories-linux-xdg.js';
 import { DockerCompatibility } from './docker/docker-compatibility.js';
 import { DockerDesktopInstallation } from './docker-extension/docker-desktop-installation.js';
 import { DockerPluginAdapter } from './docker-extension/docker-plugin-adapter.js';
@@ -158,10 +162,12 @@ import type {
   ContainerCreateOptions as PodmanContainerCreateOptions,
   PlayKubeInfo,
 } from './dockerode/libpod-dockerode.js';
+import { DocumentationService } from './documentation/documentation-service.js';
 import { EditorInit } from './editor-init.js';
 import type { Emitter } from './events/emitter.js';
 import { ExperimentalConfigurationManager } from './experimental-configuration-manager.js';
 import { ExperimentalFeatureFeedbackHandler } from './experimental-feature-feedback-handler.js';
+import { ExploreFeatures } from './explore-features/explore-features.js';
 import { ExtensionsCatalog } from './extension/catalog/extensions-catalog.js';
 import type { CatalogExtension } from './extension/catalog/extensions-catalog-api.js';
 import { ExtensionAnalyzer } from './extension/extension-analyzer.js';
@@ -181,6 +187,7 @@ import { KubernetesClient } from './kubernetes/kubernetes-client.js';
 import { downloadGuideList } from './learning-center/learning-center.js';
 import { LearningCenterInit } from './learning-center-init.js';
 import { LibpodApiInit } from './libpod-api-enable/libpod-api-init.js';
+import { ListOrganizerRegistry } from './list-organizer.js';
 import { MessageBox } from './message-box.js';
 import { NavigationItemsInit } from './navigation-items-init.js';
 import { OnboardingRegistry } from './onboarding-registry.js';
@@ -196,15 +203,18 @@ import { StatusBarRegistry } from './statusbar/statusbar-registry.js';
 import { NotificationRegistry } from './tasks/notification-registry.js';
 import { ProgressImpl } from './tasks/progress-impl.js';
 import { PAGE_EVENT_TYPE, Telemetry } from './telemetry/telemetry.js';
+import { TempFileService } from './temp-file-service.js';
 import { TerminalInit } from './terminal-init.js';
 import { TrayIconColor } from './tray-icon-color.js';
 import { TrayMenuRegistry } from './tray-menu-registry.js';
 import { Troubleshooting } from './troubleshooting.js';
 import type { IDisposable } from './types/disposable.js';
+import { DirectoryStrategy } from './util/directory-strategy.js';
 import { Exec } from './util/exec.js';
 import { getFreePort, getFreePortRange, isFreePort } from './util/port.js';
 import { TaskConnectionUtils } from './util/task-connection-utils.js';
 import { ViewRegistry } from './view-registry.js';
+import { DevToolsManager } from './webview/devtools-manager.js';
 import { WebviewRegistry } from './webview/webview-registry.js';
 import { WelcomeInit } from './welcome/welcome-init.js';
 
@@ -408,7 +418,7 @@ export class PluginSystem {
 
       const result = await messageBox.showMessageBox({
         title: 'Open External Website',
-        message: 'Are you sure you want to open the external website ?',
+        message: 'Are you sure you want to open the external website?',
         detail: url,
         type: 'question',
         buttons: ['Yes', 'Copy link', 'Cancel'],
@@ -427,13 +437,13 @@ export class PluginSystem {
     };
   }
 
-  protected initConfigurationRegistry(
+  protected async initConfigurationRegistry(
     container: Container,
     notifications: NotificationCardOptions[],
     configurationRegistryEmitter: Emitter<ConfigurationRegistry>,
-  ): ConfigurationRegistry {
+  ): Promise<ConfigurationRegistry> {
     const configurationRegistry = container.get<ConfigurationRegistry>(ConfigurationRegistry);
-    notifications.push(...configurationRegistry.init());
+    notifications.push(...(await configurationRegistry.init()));
     configurationRegistryEmitter.fire(configurationRegistry);
     return configurationRegistry;
   }
@@ -461,7 +471,12 @@ export class PluginSystem {
     container.bind<ApiSenderType>(ApiSenderType).toConstantValue(apiSender);
     container.bind<TrayMenu>(TrayMenu).toConstantValue(this.trayMenu);
     container.bind<IconRegistry>(IconRegistry).toSelf().inSingletonScope();
-    container.bind<Directories>(Directories).toSelf().inSingletonScope();
+    const directoryStrategy = new DirectoryStrategy();
+    if (directoryStrategy.shouldUseXDGDirectories()) {
+      container.bind<Directories>(Directories).to(LinuxXDGDirectories).inSingletonScope();
+    } else {
+      container.bind<Directories>(Directories).to(LegacyDirectories).inSingletonScope();
+    }
     container.bind<StatusBarRegistry>(StatusBarRegistry).toSelf().inSingletonScope();
     container.bind<SafeStorageRegistry>(SafeStorageRegistry).toSelf().inSingletonScope();
 
@@ -470,7 +485,7 @@ export class PluginSystem {
 
     container.bind<ConfigurationRegistry>(ConfigurationRegistry).toSelf().inSingletonScope();
     container.bind<IConfigurationRegistry>(IConfigurationRegistry).toService(ConfigurationRegistry);
-    const configurationRegistry = this.initConfigurationRegistry(
+    const configurationRegistry = await this.initConfigurationRegistry(
       container,
       notifications,
       configurationRegistryEmitter,
@@ -539,12 +554,6 @@ export class PluginSystem {
     statusbarProviders.init();
 
     container.bind<MessageBox>(MessageBox).toSelf().inSingletonScope();
-
-    container.bind<ExperimentalFeatureFeedbackHandler>(ExperimentalFeatureFeedbackHandler).toSelf().inSingletonScope();
-    const experimentalFeatureFeedbackHandler = container.get<ExperimentalFeatureFeedbackHandler>(
-      ExperimentalFeatureFeedbackHandler,
-    );
-    await experimentalFeatureFeedbackHandler.init();
 
     // Don't show the tray icon options on Mac
     if (!isMac()) {
@@ -677,6 +686,7 @@ export class PluginSystem {
     container.bind<ImageFilesRegistry>(ImageFilesRegistry).toSelf().inSingletonScope();
     container.bind<Troubleshooting>(Troubleshooting).toSelf().inSingletonScope();
     container.bind<ContributionManager>(ContributionManager).toSelf().inSingletonScope();
+    container.bind<DevToolsManager>(DevToolsManager).toSelf().inSingletonScope();
     container.bind<WebviewRegistry>(WebviewRegistry).toSelf().inSingletonScope();
 
     const webviewRegistry = container.get<WebviewRegistry>(WebviewRegistry);
@@ -704,6 +714,9 @@ export class PluginSystem {
     const extensionDevelopmentFolders = container.get<ExtensionDevelopmentFolders>(ExtensionDevelopmentFolders);
     extensionDevelopmentFolders.init();
 
+    container.bind<ListOrganizerRegistry>(ListOrganizerRegistry).toSelf().inSingletonScope();
+    const listOrganizerRegistry = container.get<ListOrganizerRegistry>(ListOrganizerRegistry);
+
     container.bind<PinRegistry>(PinRegistry).toSelf().inSingletonScope();
     const pinRegistry = container.get<PinRegistry>(PinRegistry);
     pinRegistry.init();
@@ -719,12 +732,22 @@ export class PluginSystem {
     container.bind<ExtensionsCatalog>(ExtensionsCatalog).toSelf().inSingletonScope();
     const extensionsCatalog = container.get<ExtensionsCatalog>(ExtensionsCatalog);
     extensionsCatalog.init();
+
+    container.bind<DocumentationService>(DocumentationService).toSelf().inSingletonScope();
+    const documentationService = container.get<DocumentationService>(DocumentationService);
+
     container.bind<Featured>(Featured).toSelf().inSingletonScope();
     const featured = container.get<Featured>(Featured);
 
     container.bind<RecommendationsRegistry>(RecommendationsRegistry).toSelf().inSingletonScope();
     const recommendationsRegistry = container.get<RecommendationsRegistry>(RecommendationsRegistry);
     recommendationsRegistry.init();
+
+    container.bind<TempFileService>(TempFileService).toSelf().inSingletonScope();
+
+    container.bind<ExploreFeatures>(ExploreFeatures).toSelf().inSingletonScope();
+    const exploreFeatures = container.get<ExploreFeatures>(ExploreFeatures);
+    await exploreFeatures.init();
 
     // do not wait
     featured.init().catch((e: unknown) => {
@@ -750,6 +773,13 @@ export class PluginSystem {
     const customPickRegistry = container.get<CustomPickRegistry>(CustomPickRegistry);
     const authentication = container.get<AuthenticationImpl>(AuthenticationImpl);
     const imageRegistry = container.get<ImageRegistry>(ImageRegistry);
+    const tempFileService = container.get<TempFileService>(TempFileService);
+
+    container.bind<ExperimentalFeatureFeedbackHandler>(ExperimentalFeatureFeedbackHandler).toSelf().inSingletonScope();
+    const experimentalFeatureFeedbackHandler = container.get<ExperimentalFeatureFeedbackHandler>(
+      ExperimentalFeatureFeedbackHandler,
+    );
+    await experimentalFeatureFeedbackHandler.init();
 
     await this.setupSecurityRestrictionsOnLinks(messageBox);
 
@@ -791,6 +821,24 @@ export class PluginSystem {
     this.ipcHandle('container-provider-registry:listNetworks', async (): Promise<NetworkInspectInfo[]> => {
       return containerProviderRegistry.listNetworks();
     });
+    this.ipcHandle(
+      'container-provider-registry:removeNetwork',
+      async (_listener, engine: string, networkId: string): Promise<void> => {
+        return containerProviderRegistry.removeNetwork(engine, networkId);
+      },
+    );
+    this.ipcHandle(
+      'container-provider-registry:updateNetwork',
+      async (
+        _listener,
+        engineId: string,
+        networkId: string,
+        addDNSServers: string[],
+        removeDNSServers: string[],
+      ): Promise<void> => {
+        return containerProviderRegistry.updateNetwork(engineId, networkId, addDNSServers, removeDNSServers);
+      },
+    );
     this.ipcHandle(
       'container-provider-registry:listVolumes',
       async (_listener, fetchUsage: boolean): Promise<VolumeListInfo[]> => {
@@ -961,6 +1009,15 @@ export class PluginSystem {
         return containerProviderRegistry.playKube(yamlFilePath, selectedProvider, options);
       },
     );
+
+    this.ipcHandle('temp-file-service:createTempFile', async (_listener, content: string): Promise<string> => {
+      return tempFileService.createTempFile(content);
+    });
+
+    this.ipcHandle('temp-file-service:removeTempFile', async (_listener, filePath: string): Promise<void> => {
+      return tempFileService.removeTempFile(filePath);
+    });
+
     this.ipcHandle(
       'container-provider-registry:startContainer',
       async (_listener, engine: string, containerId: string): Promise<void> => {
@@ -1164,6 +1221,9 @@ export class PluginSystem {
           containerId: string;
           onDataId: number;
           cancellableTokenId?: number;
+          timestamps?: boolean;
+          tail?: number;
+          since?: string;
         },
       ): Promise<void> => {
         const abortController = this.createAbortControllerOnCancellationToken(
@@ -1183,6 +1243,9 @@ export class PluginSystem {
             );
           },
           abortController,
+          timestamps: logsParams.timestamps,
+          tail: logsParams.tail,
+          since: logsParams.since,
         });
       },
     );
@@ -2009,6 +2072,35 @@ export class PluginSystem {
     );
 
     this.ipcHandle(
+      'list-organizer-registry:loadListConfig',
+      async (
+        _listener: Electron.IpcMainInvokeEvent,
+        key: string,
+        availableColumns: string[],
+      ): Promise<ListOrganizerItem[]> => {
+        return listOrganizerRegistry.loadListConfig(key, availableColumns);
+      },
+    );
+
+    this.ipcHandle(
+      'list-organizer-registry:saveListConfig',
+      async (_listener: Electron.IpcMainInvokeEvent, key: string, items: ListOrganizerItem[]): Promise<void> => {
+        return listOrganizerRegistry.saveListConfig(key, items);
+      },
+    );
+
+    this.ipcHandle(
+      'list-organizer-registry:resetListConfig',
+      async (
+        _listener: Electron.IpcMainInvokeEvent,
+        key: string,
+        availableColumns: string[],
+      ): Promise<ListOrganizerItem[]> => {
+        return listOrganizerRegistry.resetListConfig(key, availableColumns);
+      },
+    );
+
+    this.ipcHandle(
       'configuration-registry:updateConfigurationValue',
       async (
         _listener: Electron.IpcMainInvokeEvent,
@@ -2091,6 +2183,14 @@ export class PluginSystem {
 
     this.ipcHandle('catalog:refreshExtensions', async (): Promise<void> => {
       return extensionsCatalog.refreshCatalog();
+    });
+
+    this.ipcHandle('documentation:getItems', async (): Promise<DocumentationInfo[]> => {
+      return documentationService.getDocumentationItems();
+    });
+
+    this.ipcHandle('documentation:refresh', async (): Promise<void> => {
+      return documentationService.refreshDocumentation();
     });
 
     this.ipcHandle('commands:getCommandPaletteCommands', async (): Promise<CommandInfo[]> => {
@@ -2853,6 +2953,15 @@ export class PluginSystem {
     this.ipcHandle('viewRegistry:listViewsContributions', async (_listener): Promise<ViewInfoUI[]> => {
       return viewRegistry.listViewsContributions();
     });
+
+    this.ipcHandle('webview:devtools:register', async (_listener, webcontentId: number): Promise<void> => {
+      return webviewRegistry.registerWebviewDevTools(webcontentId);
+    });
+
+    this.ipcHandle('webview:devtools:cleanup', async (_listener, webcontentId: number): Promise<void> => {
+      return webviewRegistry.cleanupWebviewDevTools(webcontentId);
+    });
+
     this.ipcHandle('webviewRegistry:listWebviews', async (_listener): Promise<WebviewInfo[]> => {
       return webviewRegistry.listWebviews();
     });
@@ -3005,6 +3114,14 @@ export class PluginSystem {
       return downloadGuideList();
     });
 
+    this.ipcHandle('explore-features:listFeatures', async () => {
+      return exploreFeatures.downloadFeaturesList();
+    });
+
+    this.ipcHandle('explore-features:closeFeatureCard', async (_listener, featureId: string): Promise<void> => {
+      return exploreFeatures.closeFeatureCard(featureId);
+    });
+
     this.ipcHandle(
       'dialog:openDialog',
       async (_listener, dialogId: string, options: containerDesktopAPI.OpenDialogOptions): Promise<void> => {
@@ -3137,19 +3254,19 @@ export class PluginSystem {
   }
 
   getLogHandler(channel: string, loggerId: string): LoggerWithEnd {
+    const safeSend = (messageType: string, data?: unknown): void => {
+      try {
+        this.getWebContentsSender().send(channel, loggerId, messageType, data);
+      } catch (err) {
+        console.error('Failed to send log message to renderer:', err);
+      }
+    };
+
     return {
-      log: (...data: unknown[]): void => {
-        this.getWebContentsSender().send(channel, loggerId, 'log', data);
-      },
-      warn: (...data: unknown[]): void => {
-        this.getWebContentsSender().send(channel, loggerId, 'warn', data);
-      },
-      error: (...data: unknown[]): void => {
-        this.getWebContentsSender().send(channel, loggerId, 'error', data);
-      },
-      onEnd: (): void => {
-        this.getWebContentsSender().send(channel, loggerId, 'finish');
-      },
+      log: (...data: unknown[]): void => safeSend('log', data),
+      warn: (...data: unknown[]): void => safeSend('warn', data),
+      error: (...data: unknown[]): void => safeSend('error', data),
+      onEnd: (): void => safeSend('finish'),
     };
   }
 

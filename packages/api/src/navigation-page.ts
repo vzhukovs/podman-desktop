@@ -21,6 +21,7 @@ export enum NavigationPage {
   CONTAINERS = 'containers',
   CONTAINER_EXPORT = 'container-export',
   CONTAINER = 'container',
+  CONTAINER_SUMMARY = 'container-summary',
   EXISTING_IMAGE_CREATE_CONTAINER = 'existing-image-create-container',
   CONTAINER_LOGS = 'container-logs',
   CONTAINER_INSPECT = 'container-inspect',
@@ -34,6 +35,7 @@ export enum NavigationPage {
   ONBOARDING = 'preferences-onboarding',
   PODMAN_PODS = 'pods',
   PODMAN_POD = 'pod',
+  PODMAN_POD_SUMMARY = 'pod-summary',
   VOLUMES = 'volumes',
   VOLUME = 'volume',
   CONTRIBUTION = 'contribution',
@@ -47,4 +49,5 @@ export enum NavigationPage {
   EDIT_CONTAINER_CONNECTION = 'edit-container-connection',
   DEPLOY_TO_KUBE = 'deploy-to-kube',
   EXPERIMENTAL_FEATURES = 'experimental',
+  CREATE_PROVIDER_CONNECTION = 'create-provider-connection',
 }

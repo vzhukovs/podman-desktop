@@ -62,6 +62,8 @@ import type { ContainerStatsInfo } from '/@api/container-stats-info';
 import type { ContributionInfo } from '/@api/contribution-info';
 import type { MessageBoxOptions, MessageBoxReturnValue } from '/@api/dialog';
 import type { DockerSocketMappingStatusInfo } from '/@api/docker-compatibility-info';
+import type { DocumentationInfo } from '/@api/documentation-info';
+import type { ExploreFeature } from '/@api/explore-feature';
 import type { ExtensionDevelopmentFolderInfo } from '/@api/extension-development-folders-info';
 import type { ExtensionInfo } from '/@api/extension-info';
 import type { FeedbackProperties, GitHubIssue } from '/@api/feedback';
@@ -89,6 +91,7 @@ import type { NetworkInspectInfo } from '/@api/network-info';
 import type { NotificationCard, NotificationCardOptions } from '/@api/notification';
 import type { OnboardingInfo, OnboardingStatus } from '/@api/onboarding';
 import type { V1Route } from '/@api/openshift-types';
+import type { PodCreateOptions, PodInfo, PodInspectInfo } from '/@api/pod-info';
 import type {
   PreflightCheckEvent,
   PreflightChecksCallback,
@@ -106,10 +109,10 @@ import type { ViewInfoUI } from '/@api/view-info';
 import type { VolumeInspectInfo, VolumeListInfo } from '/@api/volume-info';
 import type { WebviewInfo } from '/@api/webview-info';
 
+import type { ListOrganizerItem } from '../../api/src/list-organizer';
 import type { ApiSenderType } from '../../main/src/plugin/api';
 import type { ContextInfo } from '../../main/src/plugin/api/context-info';
 import type { KubernetesGeneratorInfo } from '../../main/src/plugin/api/KubernetesGeneratorInfo';
-import type { PodCreateOptions, PodInfo, PodInspectInfo } from '../../main/src/plugin/api/pod-info';
 import type { AuthenticationProviderInfo } from '../../main/src/plugin/authentication';
 import type {
   ContainerCreateOptions as PodmanContainerCreateOptions,
@@ -301,6 +304,17 @@ export function initExposure(): void {
     return ipcInvoke('container-provider-registry:listNetworks');
   });
 
+  contextBridge.exposeInMainWorld('removeNetwork', async (engine: string, networkId: string): Promise<void> => {
+    return ipcInvoke('container-provider-registry:removeNetwork', engine, networkId);
+  });
+
+  contextBridge.exposeInMainWorld(
+    'updateNetwork',
+    async (engine: string, networkId: string, addDNSServers: string[], removeDNSServers: string[]): Promise<void> => {
+      return ipcInvoke('container-provider-registry:updateNetwork', engine, networkId, addDNSServers, removeDNSServers);
+    },
+  );
+
   contextBridge.exposeInMainWorld(
     'replicatePodmanContainer',
     async (
@@ -374,6 +388,14 @@ export function initExposure(): void {
       return ipcInvoke('container-provider-registry:playKube', relativeContainerfilePath, selectedProvider, options);
     },
   );
+
+  contextBridge.exposeInMainWorld('createTempFile', async (content: string): Promise<string> => {
+    return ipcInvoke('temp-file-service:createTempFile', content);
+  });
+
+  contextBridge.exposeInMainWorld('removeTempFile', async (filePath: string): Promise<void> => {
+    return ipcInvoke('temp-file-service:removeTempFile', filePath);
+  });
 
   contextBridge.exposeInMainWorld('stopPod', async (engine: string, podId: string): Promise<void> => {
     return ipcInvoke('container-provider-registry:stopPod', engine, podId);
@@ -547,6 +569,9 @@ export function initExposure(): void {
       containerId: string;
       callback: (name: string, data: string) => void;
       cancellableTokenId?: number;
+      timestamps?: boolean;
+      tail?: number;
+      since?: string;
     }): Promise<void> => {
       onDataCallbacksLogsContainerId++;
       onDataCallbacksLogsContainer.set(onDataCallbacksLogsContainerId, logsParams.callback);
@@ -555,6 +580,9 @@ export function initExposure(): void {
         containerId: logsParams.containerId,
         onDataId: onDataCallbacksLogsContainerId,
         cancellableTokenId: logsParams.cancellableTokenId,
+        timestamps: logsParams.timestamps,
+        tail: logsParams.tail,
+        since: logsParams.since,
       });
     },
   );
@@ -1598,6 +1626,14 @@ export function initExposure(): void {
     return ipcInvoke('catalog:refreshExtensions');
   });
 
+  contextBridge.exposeInMainWorld('getDocumentationItems', async (): Promise<DocumentationInfo[]> => {
+    return ipcInvoke('documentation:getItems');
+  });
+
+  contextBridge.exposeInMainWorld('refreshDocumentationItems', async (): Promise<void> => {
+    return ipcInvoke('documentation:refresh');
+  });
+
   contextBridge.exposeInMainWorld('getCommandPaletteCommands', async (): Promise<CommandInfo[]> => {
     return ipcInvoke('commands:getCommandPaletteCommands');
   });
@@ -2422,6 +2458,14 @@ export function initExposure(): void {
     return ipcInvoke('webviewRegistry:makeDefaultWebviewVisible', webviewId);
   });
 
+  contextBridge.exposeInMainWorld('registerWebviewDevTools', async (webcontentId: number): Promise<void> => {
+    return ipcInvoke('webview:devtools:register', webcontentId);
+  });
+
+  contextBridge.exposeInMainWorld('cleanupWebviewDevTools', async (webcontentId: number): Promise<void> => {
+    return ipcInvoke('webview:devtools:cleanup', webcontentId);
+  });
+
   contextBridge.exposeInMainWorld(
     'fetchExtensionViewsContributions',
     async (extensionId: string): Promise<ViewInfoUI[]> => {
@@ -2497,6 +2541,23 @@ export function initExposure(): void {
     },
   );
 
+  // Layout Registry functions
+  contextBridge.exposeInMainWorld(
+    'loadListConfig',
+    async (kind: string, availableColumns: string[]): Promise<ListOrganizerItem[]> => {
+      return ipcInvoke('list-organizer-registry:loadListConfig', kind, availableColumns);
+    },
+  );
+  contextBridge.exposeInMainWorld('saveListConfig', async (kind: string, items: ListOrganizerItem[]): Promise<void> => {
+    return ipcInvoke('list-organizer-registry:saveListConfig', kind, items);
+  });
+  contextBridge.exposeInMainWorld(
+    'resetListConfig',
+    async (kind: string, availableColumns: string[]): Promise<ListOrganizerItem[]> => {
+      return ipcInvoke('list-organizer-registry:resetListConfig', kind, availableColumns);
+    },
+  );
+
   contextBridge.exposeInMainWorld('getImageFilesProviders', async (): Promise<ImageFilesInfo[]> => {
     return ipcInvoke('image-files:getProviders');
   });
@@ -2514,6 +2575,14 @@ export function initExposure(): void {
 
   contextBridge.exposeInMainWorld('listGuides', async (): Promise<Guide[]> => {
     return ipcInvoke('learning-center:listGuides');
+  });
+
+  contextBridge.exposeInMainWorld('listFeatures', async (): Promise<ExploreFeature[]> => {
+    return ipcInvoke('explore-features:listFeatures');
+  });
+
+  contextBridge.exposeInMainWorld('closeFeatureCard', async (featureId: string): Promise<void> => {
+    return ipcInvoke('explore-features:closeFeatureCard', featureId);
   });
 
   contextBridge.exposeInMainWorld('contextCollectAllValues', async (): Promise<Record<string, unknown>> => {

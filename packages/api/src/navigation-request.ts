@@ -24,6 +24,7 @@ export interface NavigationParameters {
   [NavigationPage.CONTAINERS]: never;
   [NavigationPage.CONTAINER]: { id: string };
   [NavigationPage.CONTAINER_EXPORT]: { id: string };
+  [NavigationPage.CONTAINER_SUMMARY]: { id: string };
   [NavigationPage.CONTAINER_LOGS]: { id: string };
   [NavigationPage.CONTAINER_TTY]: { id: string };
   [NavigationPage.CONTAINER_INSPECT]: { id: string };
@@ -38,8 +39,9 @@ export interface NavigationParameters {
   [NavigationPage.ONBOARDING]: { extensionId: string };
   [NavigationPage.PODMAN_PODS]: never;
   [NavigationPage.PODMAN_POD]: { name: string; engineId: string };
+  [NavigationPage.PODMAN_POD_SUMMARY]: { name: string; engineId: string };
   [NavigationPage.VOLUMES]: never;
-  [NavigationPage.VOLUME]: { name: string };
+  [NavigationPage.VOLUME]: { engineId: string; name: string };
   [NavigationPage.CONTRIBUTION]: { name: string };
   [NavigationPage.TROUBLESHOOTING]: never;
   [NavigationPage.HELP]: never;
@@ -48,6 +50,7 @@ export interface NavigationParameters {
   [NavigationPage.RESOURCES]: never;
   [NavigationPage.CLI_TOOLS]: never;
   [NavigationPage.EDIT_CONTAINER_CONNECTION]: { provider: string; name: string };
+  [NavigationPage.CREATE_PROVIDER_CONNECTION]: { provider: string };
   [NavigationPage.PROVIDER_TASK]: { internalId: string; taskId: number | undefined };
   [NavigationPage.EXPERIMENTAL_FEATURES]: never;
 }

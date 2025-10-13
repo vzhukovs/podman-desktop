@@ -56,21 +56,18 @@ toolsToTest.forEach(tool => {
           .toBeFalsy();
       });
 
-      test(`Install ${tool} -> downgrade -> uninstall`, async () => {
-        test.setTimeout(120_000);
+      test.beforeEach(async () => {
+        if (cliToolsPage.wasRateLimitReached()) {
+          test.info().annotations.push({ type: 'skip', description: 'Rate limit exceeded for current environment' });
+          test.skip(true, 'Rate limit exceeded; skipping remaining CLI tools checks');
+        }
+      });
+
+      test(`Install ${tool} -> downgrade -> upgrade -> uninstall`, async () => {
+        test.setTimeout(180_000);
 
         await cliToolsPage.installTool(tool);
         await cliToolsPage.downgradeTool(tool);
-        await cliToolsPage.uninstallTool(tool);
-        await playExpect
-          .poll(async () => await cliToolsPage.getCurrentToolVersion(tool), { timeout: 90_000 })
-          .toBeFalsy();
-      });
-
-      test(`Install old version of ${tool} -> upgrade -> uninstall`, async () => {
-        test.setTimeout(120_000);
-
-        await cliToolsPage.installToolWithSecondLatestVersion(tool);
         await cliToolsPage.updateTool(tool);
         await cliToolsPage.uninstallTool(tool);
         await playExpect

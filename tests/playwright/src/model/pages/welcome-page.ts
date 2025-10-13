@@ -30,6 +30,15 @@ export class WelcomePage extends BasePage {
   readonly skipOnBoarding: Locator;
   readonly checkLoader: Locator;
   readonly startOnboarding: Locator;
+  readonly onboardingMessageStatus: Locator;
+  readonly nextStepButton: Locator;
+  readonly cancelSetupButton: Locator;
+  readonly otherVersionButton: Locator;
+  readonly dropDownDialog: Locator;
+  readonly latestVersionFromDropDown: Locator;
+  readonly confirmationPopUp: Locator;
+  readonly okButtonPopup: Locator;
+  readonly markdownContentLocator: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -46,17 +55,21 @@ export class WelcomePage extends BasePage {
       name: 'Start onboarding',
       exact: true,
     });
+    this.onboardingMessageStatus = this.page.getByLabel('Onboarding Status Message');
+    this.nextStepButton = this.page.getByRole('button', { name: 'Next Step' });
+    this.cancelSetupButton = this.page.getByRole('button', { name: 'Cancel Setup' });
+    this.markdownContentLocator = this.page.getByLabel('markdown-content');
+    this.otherVersionButton = this.markdownContentLocator.getByText('Want to download a different version?');
+    this.dropDownDialog = this.page.getByLabel('drop-down-dialog');
+    this.latestVersionFromDropDown = this.dropDownDialog.getByRole('button').first();
+    this.confirmationPopUp = page.getByRole('dialog', { name: 'Skip Setup Popup' });
+    this.okButtonPopup = this.confirmationPopUp.getByRole('button', { name: 'OK' });
   }
 
   async turnOffTelemetry(): Promise<void> {
     return test.step('Turn off Telemetry', async () => {
-      const isUpdateTest = test.info().tags.includes('@update-install');
-
-      if (!isUpdateTest) {
-        // Extensions load sequentially (faster speed but can block ui)
-        // Each extension timeout is 20s use 60s to provide a decent bufffer
-        await playExpect(this.startOnboarding).toBeEnabled({ timeout: 60_000 });
-      }
+      // Extensions load sequentially (faster speed but can block ui)
+      await playExpect(this.startOnboarding).toBeEnabled({ timeout: 30_000 });
 
       if (await this.telemetryConsent.isChecked()) {
         await playExpect(this.telemetryConsent).toBeChecked();

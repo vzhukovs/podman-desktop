@@ -227,6 +227,12 @@ export class ProviderRegistry {
     this.telemetryService.aggregateTrack('createProviders', trackOpts);
     this.apiSender.send('provider-create', id);
     providerImpl.onDidUpdateVersion(() => this.apiSender.send('provider:update-version'));
+    providerImpl.onDidUpdateStatus((status: ProviderStatus) => {
+      const provider = this.getMatchingProvider(id);
+      this.listeners.forEach(listener =>
+        listener('provider:update-status', { ...this.toProviderInfo(provider), status: status }),
+      );
+    });
     return providerImpl;
   }
 
@@ -1323,6 +1329,7 @@ export class ProviderRegistry {
     };
     this._onDidUpdateContainerConnection.fire(event);
     this._onAfterDidUpdateContainerConnection.fire(event);
+    this.apiSender.send('provider-container-connection-update-status');
   }
 
   onDidUnregisterContainerConnectionCallback(

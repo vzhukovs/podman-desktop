@@ -62,7 +62,7 @@ async function installExtension(): Promise<void> {
       },
       extension.id,
     );
-    logs = [...logs, '☑️ installation finished !'];
+    logs = [...logs, '☑️ installation finished!'];
     percentage = '100%';
   } catch (error) {
     console.log('error', error);
@@ -81,10 +81,6 @@ async function installExtension(): Promise<void> {
   <LoadingIcon
     icon={faDownload}
     iconSize="1x"
-    loadingWidthClass="w-7"
-    loadingHeightClass="h-7"
-    positionTopClass="top-[2px]"
-    positionLeftClass="left-[4px]"
     loading={installInProgress} />
   <span
     class:hidden={!installInProgress}

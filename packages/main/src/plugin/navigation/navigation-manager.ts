@@ -235,6 +235,7 @@ export class NavigationManager {
       page: NavigationPage.VOLUME,
       parameters: {
         name: name,
+        engineId: engineId,
       },
     });
   }
@@ -328,6 +329,16 @@ export class NavigationManager {
       page: NavigationPage.ONBOARDING,
       parameters: {
         extensionId: extensionId,
+      },
+    });
+  }
+
+  async navigateToCreateProviderConnection(providerId: string): Promise<void> {
+    const internalId = this.providerRegistry.getMatchingProviderInternalId(providerId);
+    this.navigateTo({
+      page: NavigationPage.CREATE_PROVIDER_CONNECTION,
+      parameters: {
+        provider: internalId,
       },
     });
   }

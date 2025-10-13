@@ -45,11 +45,11 @@ export function LinuxDownloads(): JSX.Element {
           <h3 className="mt-0">Podman Desktop for Linux</h3>
           <div className="pt-8">
             <TelemetryLink
-              className="mt-auto no-underline hover:no-underline inline-flex text-white hover:text-white bg-purple-500 border-0 py-2 px-6 focus:outline-hidden hover:bg-purple-500 rounded-sm text-md font-semibold"
+              className="mt-auto no-underline hover:no-underline inline-flex text-white hover:text-white bg-purple-500 border-0 py-2 px-6 focus:outline-hidden hover:bg-purple-500 rounded-sm text-md font-semibold items-center"
               eventPath="download"
               eventTitle="download-linux"
               to={linux.flatpak}>
-              <FontAwesomeIcon size="1x" icon={faDownload} className="mr-2" />
+              <FontAwesomeIcon size="1x" icon={faDownload} className="mr-2 my-auto" />
               Download Now
             </TelemetryLink>
             <caption className="block w-full mt-1 text/50 dark:text-white/50">
@@ -130,7 +130,7 @@ export default function Home(): JSX.Element {
           <h1 className="title-font sm:text-3xl text-2xl lg:text-5xl mb-10 font-medium text-charcoal-300 dark:text-white">
             Linux Downloads
           </h1>
-          <main className="h-screen">
+          <main className="min-h-screen">
             <LinuxDownloads />
           </main>
         </div>

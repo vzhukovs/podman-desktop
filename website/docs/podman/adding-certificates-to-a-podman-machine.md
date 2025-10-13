@@ -13,6 +13,12 @@ You can add certificates from your local certificate authority (CA) or from a th
 - Secure the communication channel between the running applications in your container and the external host system
 - Validate the SSL or TLS certificates provided by external services for authentication
 
+:::note
+
+On Windows, the Podman commands use the CAs from the certificate store. For example, if you are unable to log in to an internal registry because the added certificate was not trusted by Podman, you can add it to the Windows certificate store. This will enable Podman commands to trust the certificate and help you log in to that registry.
+
+:::
+
 #### Prerequisites
 
 - A running [Podman machine](/docs/podman/creating-a-podman-machine).

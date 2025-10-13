@@ -19,7 +19,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { PlayYamlRuntime } from '../model/core/operations';
 import { KubernetesResourceState } from '../model/core/states';
 import { KubernetesResources } from '../model/core/types';
 import { createKindCluster, deleteCluster } from '../utility/cluster-operations';
@@ -42,16 +41,11 @@ const CLUSTER_CREATION_TIMEOUT: number = 300_000;
 const KIND_NODE: string = `${CLUSTER_NAME}-control-plane`;
 const RESOURCE_NAME: string = 'kind';
 const KUBERNETES_CONTEXT: string = `kind-${CLUSTER_NAME}`;
-const KUBERNETES_NAMESPACE: string = 'default';
 
 const DEPLOYMENT_NAME: string = 'test-deployment-resource';
 const SERVICE_NAME: string = 'test-service-resource';
 const INGRESS_NAME: string = 'test-ingress-resource';
-const KUBERNETES_RUNTIME = {
-  runtime: PlayYamlRuntime.Kubernetes,
-  kubernetesContext: KUBERNETES_CONTEXT,
-  kubernetesNamespace: KUBERNETES_NAMESPACE,
-};
+
 const IMAGE_NAME: string = 'ghcr.io/podmandesktop-ci/nginx';
 const PULL_IMAGE_NAME: string = `${IMAGE_NAME}:latest`;
 const CONTAINER_NAME: string = 'nginx-container';
@@ -105,6 +99,8 @@ test.beforeAll(async ({ runner, welcomePage, page, navigationBar }) => {
     await settingsBar.cliToolsTab.click();
 
     await ensureCliInstalled(page, 'Kind');
+    // workaround for https://github.com/podman-desktop/podman-desktop/issues/13980
+    await ensureCliInstalled(page, 'kubectl');
   }
 
   await createKindCluster(page, CLUSTER_NAME, CLUSTER_CREATION_TIMEOUT, {
@@ -125,6 +121,54 @@ test.afterAll(async ({ runner, page }) => {
 });
 
 test.describe('Kubernetes networking E2E test', { tag: '@k8s_e2e' }, () => {
+  test.describe
+    .serial('Ingress routing workflow verification', () => {
+      test('Check Ingress controller pods status', async ({ page }) => {
+        test.setTimeout(160_000);
+        await monitorPodStatusInClusterContainer(page, KIND_NODE, INGRESS_CONTROLLER_COMMAND);
+      });
+
+      test('Create and verify a running Kubernetes deployment', async ({ page }) => {
+        test.setTimeout(80_000);
+        await createKubernetesResource(page, KubernetesResources.Deployments, DEPLOYMENT_NAME, DEPLOYMENT_YAML_PATH);
+        await checkKubernetesResourceState(
+          page,
+          KubernetesResources.Deployments,
+          DEPLOYMENT_NAME,
+          KubernetesResourceState.Running,
+          80_000,
+        );
+      });
+      test('Create and verify a running Kubernetes service', async ({ page }) => {
+        await createKubernetesResource(page, KubernetesResources.Services, SERVICE_NAME, SERVICE_YAML_PATH);
+        await checkKubernetesResourceState(
+          page,
+          KubernetesResources.Services,
+          SERVICE_NAME,
+          KubernetesResourceState.Running,
+          10_000,
+        );
+      });
+      test('Create and verify a running Kubernetes ingress', async ({ page }) => {
+        await createKubernetesResource(page, KubernetesResources.IngeressesRoutes, INGRESS_NAME, INGRESS_YAML_PATH);
+        await checkKubernetesResourceState(
+          page,
+          KubernetesResources.IngeressesRoutes,
+          INGRESS_NAME,
+          KubernetesResourceState.Running,
+          10_000,
+        );
+      });
+      test(`Verify the availability of the ${SERVICE_NAME} service.`, async () => {
+        await verifyLocalPortResponse(SERVICE_ADDRESS, RESPONSE_MESSAGE);
+      });
+      test('Delete Kubernetes resources', async ({ page }) => {
+        await deleteKubernetesResource(page, KubernetesResources.IngeressesRoutes, INGRESS_NAME);
+        await deleteKubernetesResource(page, KubernetesResources.Services, SERVICE_NAME);
+        await deleteKubernetesResource(page, KubernetesResources.Deployments, DEPLOYMENT_NAME);
+      });
+    });
+
   test.describe.serial('Port forwarding workflow verification', { tag: '@k8s_e2e' }, () => {
     test('Prepare deployment on the cluster', async ({ page, navigationBar }) => {
       test.setTimeout(120_000);
@@ -156,12 +200,12 @@ test.describe('Kubernetes networking E2E test', { tag: '@k8s_e2e' }, () => {
       await configurePortForwarding(page, KubernetesResources.Pods, POD_NAME);
     });
 
-    test('Verify new local port response', async () => {
-      await verifyLocalPortResponse(PORT_FORWARDING_ADDRESS, RESPONSE_MESSAGE);
-    });
-
     test('Verify Kubernetes port forwarding page', async ({ page }) => {
       await verifyPortForwardingConfiguration(page, CONTAINER_NAME, LOCAL_PORT, REMOTE_PORT);
+    });
+
+    test('Verify new local port response', async () => {
+      await verifyLocalPortResponse(PORT_FORWARDING_ADDRESS, RESPONSE_MESSAGE);
     });
 
     test('Delete configuration', async ({ page }) => {
@@ -187,69 +231,4 @@ test.describe('Kubernetes networking E2E test', { tag: '@k8s_e2e' }, () => {
       await verifyLocalPortResponse(PORT_FORWARDING_ADDRESS, RESPONSE_MESSAGE); //expect to contain to pass until #11210 is resolved
     });
   });
-  test.describe
-    .serial('Ingress routing workflow verification', () => {
-      test('Check Ingress controller pods status', async ({ page }) => {
-        test.setTimeout(160_000);
-        await monitorPodStatusInClusterContainer(page, KIND_NODE, INGRESS_CONTROLLER_COMMAND);
-      });
-
-      test('Create and verify a running Kubernetes deployment', async ({ page }) => {
-        test.setTimeout(80_000);
-        await createKubernetesResource(
-          page,
-          KubernetesResources.Deployments,
-          DEPLOYMENT_NAME,
-          DEPLOYMENT_YAML_PATH,
-          KUBERNETES_RUNTIME,
-        );
-        await checkKubernetesResourceState(
-          page,
-          KubernetesResources.Deployments,
-          DEPLOYMENT_NAME,
-          KubernetesResourceState.Running,
-          80_000,
-        );
-      });
-      test('Create and verify a running Kubernetes service', async ({ page }) => {
-        await createKubernetesResource(
-          page,
-          KubernetesResources.Services,
-          SERVICE_NAME,
-          SERVICE_YAML_PATH,
-          KUBERNETES_RUNTIME,
-        );
-        await checkKubernetesResourceState(
-          page,
-          KubernetesResources.Services,
-          SERVICE_NAME,
-          KubernetesResourceState.Running,
-          10_000,
-        );
-      });
-      test('Create and verify a running Kubernetes ingress', async ({ page }) => {
-        await createKubernetesResource(
-          page,
-          KubernetesResources.IngeressesRoutes,
-          INGRESS_NAME,
-          INGRESS_YAML_PATH,
-          KUBERNETES_RUNTIME,
-        );
-        await checkKubernetesResourceState(
-          page,
-          KubernetesResources.IngeressesRoutes,
-          INGRESS_NAME,
-          KubernetesResourceState.Running,
-          10_000,
-        );
-      });
-      test(`Verify the availability of the ${SERVICE_NAME} service.`, async () => {
-        await verifyLocalPortResponse(SERVICE_ADDRESS, RESPONSE_MESSAGE);
-      });
-      test('Delete Kubernetes resources', async ({ page }) => {
-        await deleteKubernetesResource(page, KubernetesResources.IngeressesRoutes, INGRESS_NAME);
-        await deleteKubernetesResource(page, KubernetesResources.Services, SERVICE_NAME);
-        await deleteKubernetesResource(page, KubernetesResources.Deployments, DEPLOYMENT_NAME);
-      });
-    });
 });

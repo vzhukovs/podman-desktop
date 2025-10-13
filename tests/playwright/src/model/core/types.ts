@@ -16,8 +16,6 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
-import type { PlayYamlRuntime } from './operations';
-
 export interface ContainerInteractiveParams {
   interactive?: boolean;
   attachTerminal?: boolean;
@@ -41,12 +39,6 @@ export interface DeployPodOptions {
   containerExposedPort?: string;
   isOpenShiftCluster?: boolean;
   useOpenShiftRoutes?: boolean;
-}
-
-export interface PlayKubernetesOptions {
-  runtime?: PlayYamlRuntime;
-  kubernetesNamespace?: string;
-  kubernetesContext: string;
 }
 
 export enum KubernetesResources {
@@ -84,3 +76,12 @@ export const KubernetesResourceAttributes: Record<KubernetesResources, string[]>
   ],
   [KubernetesResources.Jobs]: ['Selected', 'Status', 'Name', 'Conditions', 'Completions', 'Age', 'Actions'],
 };
+
+export enum PodmanVirtualizationProviders {
+  WSL = 'Wsl',
+  HyperV = 'Hyperv',
+  AppleHV = 'Apple HyperVisor',
+  LibKrun = 'default GPU enabled (LibKrun)',
+  Qemu = 'Qemu',
+  Native = '', //not a real provider, used for 'Connection Type' check in Resources page of Linux machines
+}

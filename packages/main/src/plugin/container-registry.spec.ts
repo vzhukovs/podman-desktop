@@ -2487,6 +2487,47 @@ describe('listNetworks', () => {
   });
 });
 
+test('removeNetwork', async () => {
+  const removeMock = vi.fn();
+  const api = {
+    getNetwork: vi.fn().mockReturnValue({ remove: removeMock }),
+  } as unknown as Dockerode;
+
+  containerRegistry.addInternalProvider('podman1', {
+    name: 'podman1',
+    id: 'podman1',
+    connection: {
+      type: 'podman',
+    },
+    api: api,
+  } as InternalContainerProvider);
+
+  await containerRegistry.removeNetwork('podman1', 'network1');
+
+  expect(api.getNetwork).toHaveBeenCalledWith('network1');
+  expect(removeMock).toHaveBeenCalled();
+});
+
+test('updateNetwork', async () => {
+  const libPodApi = {
+    updateNetwork: vi.fn(),
+  } as unknown as LibPod;
+
+  containerRegistry.addInternalProvider('podman1', {
+    name: 'podman1',
+    id: 'podman1',
+    connection: {
+      type: 'podman',
+    },
+    api: {} as unknown as Dockerode,
+    libpodApi: libPodApi,
+  } as InternalContainerProvider);
+
+  await containerRegistry.updateNetwork('podman1', 'network1', ['1.1.1.1'], []);
+
+  expect(libPodApi.updateNetwork).toHaveBeenCalledWith('network1', ['1.1.1.1'], []);
+});
+
 describe('createVolume', () => {
   test('provided name', async () => {
     server = setupServer(http.post('http://localhost/volumes/create', () => HttpResponse.json('')));
@@ -2761,6 +2802,17 @@ test('container logs callback notified when messages arrive', async () => {
     deferredResolve(undefined);
   });
   await containerRegistry.logsContainer({ engineId: 'podman', id: 'containerId', callback });
+
+  const callArgs = vi.mocked(dockerodeContainer.logs).mock.calls[0]?.[0];
+
+  expect(callArgs).toStrictEqual({
+    follow: true,
+    stdout: true,
+    stderr: true,
+    abortSignal: undefined,
+    tail: undefined,
+    timestamps: undefined,
+  });
 
   setTimeout(() => {
     stream.emit('data', 'log message');

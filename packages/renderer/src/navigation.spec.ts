@@ -60,6 +60,12 @@ test(`Test navigationHandle for ${NavigationPage.CONTAINER}`, () => {
   expect(vi.mocked(router.goto)).toHaveBeenCalledWith('/containers/123/');
 });
 
+test(`Test navigationHandle for ${NavigationPage.CONTAINER_SUMMARY}`, () => {
+  handleNavigation({ page: NavigationPage.CONTAINER_SUMMARY, parameters: { id: '123' } });
+
+  expect(vi.mocked(router.goto)).toHaveBeenCalledWith('/containers/123/summary');
+});
+
 test(`Test navigationHandle for ${NavigationPage.CONTAINER_LOGS}`, () => {
   handleNavigation({ page: NavigationPage.CONTAINER_LOGS, parameters: { id: '123' } });
 
@@ -143,6 +149,18 @@ test(`Test navigationHandle for ${NavigationPage.PODMAN_PODS}`, () => {
   expect(vi.mocked(router.goto)).toHaveBeenCalledWith('/pods');
 });
 
+test(`Test navigationHandle for ${NavigationPage.PODMAN_POD_SUMMARY}`, () => {
+  handleNavigation({
+    page: NavigationPage.PODMAN_POD_SUMMARY,
+    parameters: {
+      engineId: 'dummyEngineId',
+      name: 'dummyPod',
+    },
+  });
+
+  expect(vi.mocked(router.goto)).toHaveBeenCalledWith('/pods/podman/dummyPod/dummyEngineId/summary');
+});
+
 test(`Test navigationHandle for ${NavigationPage.PODMAN_POD}`, () => {
   handleNavigation({
     page: NavigationPage.PODMAN_POD,
@@ -166,10 +184,11 @@ test(`Test navigationHandle for ${NavigationPage.VOLUME}`, () => {
     page: NavigationPage.VOLUME,
     parameters: {
       name: 'dummyVolumeName',
+      engineId: 'dummyEngineId',
     },
   });
 
-  expect(vi.mocked(router.goto)).toHaveBeenCalledWith('/volumes/dummyVolumeName/');
+  expect(vi.mocked(router.goto)).toHaveBeenCalledWith('/volumes/dummyVolumeName/dummyEngineId/summary');
 });
 
 test(`Test navigationHandle for ${NavigationPage.CONTRIBUTION}`, () => {
@@ -254,4 +273,15 @@ test(`Test navigationHandle for ${NavigationPage.EXPERIMENTAL_FEATURES}`, () => 
   handleNavigation({ page: NavigationPage.EXPERIMENTAL_FEATURES });
 
   expect(vi.mocked(router.goto)).toHaveBeenCalledWith('/preferences/experimental');
+});
+
+test(`Test navigationHandle for ${NavigationPage.CREATE_PROVIDER_CONNECTION}`, () => {
+  handleNavigation({
+    page: NavigationPage.CREATE_PROVIDER_CONNECTION,
+    parameters: {
+      provider: 'dummyProviderId',
+    },
+  });
+
+  expect(vi.mocked(router.goto)).toHaveBeenCalledWith('/preferences/provider/dummyProviderId');
 });

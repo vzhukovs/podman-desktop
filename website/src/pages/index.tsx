@@ -5,8 +5,8 @@ import Layout from '@theme/Layout';
 import ThemedImage from '@theme/ThemedImage';
 import React from 'react';
 
+import Banner from '../components/3MBanner';
 import { CNCFCommunityBanner } from '../components/CNCFCommunityBanner';
-import CommunityBanner from '../components/CommunityBanner';
 import { DownloadClientLinks, DownloadGenericLinks } from '../components/DownloadButton';
 import { ExpandableFAQ } from '../components/ExpandableFAQ';
 import { ReadTheDocsButton } from '../components/ReadTheDocsButton';
@@ -19,14 +19,30 @@ function Hero(): JSX.Element {
       <div className="container mx-auto flex px-5 pb-24 pt-4 items-center justify-center flex-col">
         <div className="text-center lg:w-3/4 w-full bg-hero-pattern bg-no-repeat bg-center">
           <div className="bg-white/30 dark:bg-transparent">
-            <h1 className="title-font text-4xl leading-[3rem] lg:text-5xl lg:leading-[4rem] font-extrabold text-charcoal-300 dark:text-white mt-[80px] lg:w-3/4 mx-auto">
-              Best Free &amp; Open Source Tool for Containers &amp; Kubernetes
-            </h1>
-            <p className="text-base font-bold leading-[1.9rem] md:text-lg md:leading-[1.9rem] mt-[88px]">
-              The best free and open source tool for developers to work with containers and Kubernetes. Simplify
-              container management, streamline Kubernetes workflows, and transition from local development to production
-              with ease.
-            </p>
+            <div className="relative">
+              <img
+                className="absolute -scale-x-100 right-0 -top-23 w-22 animate-float"
+                src="https://3m.podman-desktop.io/img/party-seal.png"
+              />
+              <img
+                className="absolute -right-8 -top-30 w-22 rotate-6  z-10 animate-float"
+                src="https://3m.podman-desktop.io/img/heart-balloon.png"
+              />
+              <h1 className="title-font text-4xl leading-[3rem] lg:text-5xl lg:leading-[4rem] font-extrabold text-charcoal-300 dark:text-white mt-[80px] lg:w-3/4 mx-auto">
+                Best Free &amp; Open Source Tool for Containers &amp; Kubernetes
+              </h1>
+            </div>
+            <div className="relative">
+              <img
+                className="absolute left-[15px] -top-[150px] w-30 animate-float-diagonal"
+                src="https://3m.podman-desktop.io/img/seal-with-party-horn.png"
+              />
+              <p className="text-base font-bold leading-[1.9rem] md:text-lg md:leading-[1.9rem] mt-[88px]">
+                The best free and open source tool for developers to work with containers and Kubernetes. Simplify
+                container management, streamline Kubernetes workflows, and transition from local development to
+                production with ease.
+              </p>
+            </div>
             <div className="flex-none">
               {/* With client mode, provides the link to the client browser */}
               <BrowserOnly fallback={<DownloadGenericLinks></DownloadGenericLinks>}>
@@ -91,7 +107,7 @@ function Testimonials(): JSX.Element {
           />
           <TestimonialCard
             username="José Bayoán Santiago Calderón"
-            userImage="https://media.licdn.com/dms/image/v2/D5635AQG6ohtsrwtWFA/profile-framedphoto-shrink_200_200/profile-framedphoto-shrink_200_200/0/1737612334868?e=1747674000&v=beta&t=EruTwnMCgArUXZfCBwBZzWQJUbbQMaUB-whOPJag6QU"
+            userImage="https://s.gravatar.com/avatar/a8070ca24f919e30e60dce8a763c8177?s=200"
             source="LinkedIn"
             text="I'm pleasantly surprised by how well Podman Desktop integrates with the Visual Studio Code Dev Containers extension. #dev #opensource #containers"
           />
@@ -111,10 +127,10 @@ function FAQ(): JSX.Element {
             title="Is Podman Desktop free?"
             text={
               <p>
-                Yes, Podman Desktop is an open-source project released under the GNU Lesser General Public License
-                (LGPL). This means that it is freely available for use, modification, and distribution by anyone,
-                without charge or licensing fees. Users can download and use Podman Desktop at no cost, making it
-                accessible to individuals and organizations alike.
+                Yes, Podman Desktop is an open-source project released under the Apache License 2.0. This means that it
+                is freely available for use, modification, and distribution by anyone, without charge or licensing fees.
+                Users can download and use Podman Desktop at no cost, making it accessible to individuals and
+                organizations alike.
               </p>
             }
           />
@@ -436,7 +452,7 @@ export default function Home(): JSX.Element {
       title="Podman Desktop - Containers and Kubernetes"
       description="Podman Desktop - An open source graphical tool for developing on containers and Kubernetes">
       <TailWindThemeSelector />
-      <CommunityBanner />
+      <Banner />
       <Hero />
       <MainFeatures />
       <Pods />

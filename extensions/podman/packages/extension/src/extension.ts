@@ -31,10 +31,11 @@ import type { PodmanExtensionApi, PodmanRunOptions } from '../../api/src/podman-
 import { CertificateDetectionService } from './certificate-detection/certificate-detection-service';
 import { SequenceCheck } from './checks/base-check';
 import { getDetectionChecks } from './checks/detection-checks';
-import { HyperVCheck } from './checks/hyperv-check';
 import { MacKrunkitPodmanMachineCreationCheck, MacPodmanInstallCheck } from './checks/macos-checks';
-import { WSLVersionCheck } from './checks/wsl-version-check';
-import { WSL2Check } from './checks/wsl2-check';
+import { HyperVCheck } from './checks/windows/hyperv-check';
+import { HyperVPodmanVersionCheck } from './checks/windows/hyperv-podman-version-check';
+import { WSLVersionCheck } from './checks/windows/wsl-version-check';
+import { WSL2Check } from './checks/windows/wsl2-check';
 import { PodmanCleanupMacOS } from './cleanup/podman-cleanup-macos';
 import { PodmanCleanupWindows } from './cleanup/podman-cleanup-windows';
 import { KrunkitHelper } from './helpers/krunkit-helper';
@@ -42,6 +43,7 @@ import { PodmanBinaryLocationHelper } from './helpers/podman-binary-location-hel
 import { PodmanInfoHelper } from './helpers/podman-info-helper';
 import { QemuHelper } from './helpers/qemu-helper';
 import { WslHelper } from './helpers/wsl-helper';
+import { InversifyBinding } from './inject/inversify-binding';
 import { PodmanInstall } from './installer/podman-install';
 import { PodmanRemoteConnections } from './remote/podman-remote-connections';
 import { getSocketCompatibility } from './utils/compatibility-mode';
@@ -51,6 +53,7 @@ import { getPodmanCli, getPodmanInstallation } from './utils/podman-cli';
 import { PodmanConfiguration } from './utils/podman-configuration';
 import { ProviderConnectionShellAccessImpl } from './utils/podman-machine-stream';
 import { RegistrySetup } from './utils/registry-setup';
+import { checkRosettaMacArm } from './utils/rosetta';
 import {
   appConfigDir,
   appHomeDir,
@@ -63,6 +66,8 @@ import {
   VMTYPE,
 } from './utils/util';
 import { isDisguisedPodman } from './utils/warnings';
+
+let inversifyBinding: InversifyBinding | undefined;
 
 type StatusHandler = (name: string, event: extensionApi.ProviderConnectionStatus) => void;
 
@@ -486,16 +491,22 @@ export async function checkDefaultMachine(machines: MachineJSON[]): Promise<void
   }
 }
 
-async function isRootfulMachine(machineJSON: MachineJSON): Promise<boolean> {
+async function isRootfulMachine(machineDetails: MachineJSON | MachineInfo): Promise<boolean> {
   let isRootful = false;
+  let vmType: string;
+  let machineName: string;
+  if ('name' in machineDetails) {
+    machineName = machineDetails.name;
+    vmType = machineDetails.vmType;
+  } else {
+    machineName = machineDetails.Name;
+    vmType = machineDetails.VMType;
+  }
   try {
-    const { stdout: machineInspectJson } = await execPodman(
-      ['machine', 'inspect', machineJSON.Name],
-      machineJSON.VMType,
-    );
+    const { stdout: machineInspectJson } = await execPodman(['machine', 'inspect', machineName], vmType);
     const machinesInspect = JSON.parse(machineInspectJson);
     // find the machine name in the array
-    const machineInspect = machinesInspect.find((machine: { Name: string }) => machine.Name === machineJSON.Name);
+    const machineInspect = machinesInspect.find((machine: { Name: string }) => machine.Name === machineName);
     isRootful = machineInspect?.Rootful ?? false;
   } catch (error) {
     console.error('Error when checking rootful machine: ', error);
@@ -525,6 +536,7 @@ async function updateContainerConfiguration(
 ): Promise<void> {
   // get configuration for this connection
   const containerConfiguration = extensionApi.configuration.getConfiguration('podman', containerProviderConnection);
+  const isRootful = await isRootfulMachine(machineInfo);
 
   // Set values for the machine
   await containerConfiguration.update('machine.cpus', machineInfo.cpus);
@@ -533,6 +545,8 @@ async function updateContainerConfiguration(
   await containerConfiguration.update('machine.memoryUsage', machineInfo.memoryUsage);
   await containerConfiguration.update('machine.diskSize', machineInfo.diskSize);
   await containerConfiguration.update('machine.diskSizeUsage', machineInfo.diskUsage);
+
+  await containerConfiguration.update('machine.rootful', isRootful);
 }
 
 function calcMacosSocketPath(machineName: string): string {
@@ -760,13 +774,19 @@ export async function registerProviderFor(
   socketPath: string,
 ): Promise<void> {
   const isHyperVMachine = extensionApi.env.isWindows && machineInfo.vmType === VMTYPE.HYPERV;
+
   const isEditMemorySupported = extensionApi.env.isMac || isHyperVMachine;
   const isEditCPUSupported = extensionApi.env.isMac || isHyperVMachine;
   const isEditDiskSizeSupported = extensionApi.env.isMac;
+  const isEditRootfulSupported = extensionApi.env.isMac || extensionApi.env.isWindows;
+
+  const isEditSupported =
+    isEditMemorySupported || isEditCPUSupported || isEditDiskSizeSupported || isEditRootfulSupported;
 
   extensionApi.context.setValue(PODMAN_MACHINE_EDIT_MEMORY, isEditMemorySupported);
   extensionApi.context.setValue(PODMAN_MACHINE_EDIT_CPU, isEditCPUSupported);
   extensionApi.context.setValue(PODMAN_MACHINE_EDIT_DISK_SIZE, isEditDiskSizeSupported);
+  extensionApi.context.setValue(PODMAN_MACHINE_EDIT_ROOTFUL, isEditRootfulSupported);
 
   const lifecycle: extensionApi.ProviderConnectionLifecycle = {
     start: async (context, logger): Promise<void> => {
@@ -781,8 +801,8 @@ export async function registerProviderFor(
       });
     },
   };
-  //support edit only on MacOS and HyperV machines as Podman WSL is nop and generates errors
-  if (isEditMemorySupported || isEditCPUSupported || isEditDiskSizeSupported) {
+  // support edit only on MacOS and Windows with limited editing capabilities for HyperV and WSL machines
+  if (isEditSupported) {
     lifecycle.edit = async (context, params, logger, _token): Promise<void> => {
       let effective = false;
       const args = ['machine', 'set', machineInfo.name];
@@ -795,6 +815,9 @@ export async function registerProviderFor(
           effective = true;
         } else if (isEditDiskSizeSupported && key === 'podman.machine.diskSize') {
           args.push('--disk-size', Math.floor(params[key] / (1024 * 1024 * 1024)).toString());
+          effective = true;
+        } else if (isEditRootfulSupported && key === 'podman.machine.rootful') {
+          args.push(`--rootful=${params[key]}`);
           effective = true;
         }
       }
@@ -842,6 +865,7 @@ export async function registerProviderFor(
 
   // get configuration for this connection
   const containerConfiguration = extensionApi.configuration.getConfiguration('podman', containerProviderConnection);
+  const isRootful = await isRootfulMachine(machineInfo);
 
   // Set values for the machine
   await containerConfiguration.update('machine.cpus', machineInfo.cpus);
@@ -851,41 +875,10 @@ export async function registerProviderFor(
   await containerConfiguration.update('machine.memoryUsage', machineInfo.memoryUsage);
   await containerConfiguration.update('machine.diskSizeUsage', machineInfo.diskUsage);
 
+  await containerConfiguration.update('machine.rootful', isRootful);
+
   currentConnections.set(machineInfo.name, disposable);
   storedExtensionContext?.subscriptions.push(disposable);
-}
-
-export async function checkRosettaMacArm(podmanConfiguration: PodmanConfiguration): Promise<void> {
-  // check that rosetta is there for macOS / arm as the machine may fail to start
-  if (extensionApi.env.isMac && os.arch() === 'arm64') {
-    const isEnabled = await podmanConfiguration.isRosettaEnabled();
-    if (isEnabled) {
-      // call the command `arch -arch x86_64 uname -m` to check if rosetta is enabled
-      // if not installed, it will fail
-      try {
-        await extensionApi.process.exec('arch', ['-arch', 'x86_64', 'uname', '-m']);
-      } catch (error: unknown) {
-        const runError = error as RunError;
-        if (runError.stderr?.includes('Bad CPU')) {
-          // rosetta is enabled but not installed, it will fail, stop from there and prompt the user to install rosetta or disable rosetta support
-          const result = await extensionApi.window.showInformationMessage(
-            'Podman machine is configured to use Rosetta but the support is not installed. The startup of the machine will fail.\nDo you want to install Rosetta? Rosetta is allowing to execute amd64 images on Apple silicon architecture.',
-            'Yes',
-            'No',
-            'Disable rosetta support',
-          );
-          if (result === 'Yes') {
-            // ask the person to perform the installation using cli
-            await extensionApi.window.showInformationMessage(
-              'Please install Rosetta from the command line by running `softwareupdate --install-rosetta`',
-            );
-          } else if (result === 'Disable rosetta support') {
-            await podmanConfiguration.updateRosettaSetting(false);
-          }
-        }
-      }
-    }
-  }
 }
 
 export async function startMachine(
@@ -1053,6 +1046,7 @@ export const PODMAN_DOCKER_COMPAT_ENABLE_KEY = 'podman.podmanDockerCompatibility
 export const PODMAN_MACHINE_EDIT_CPU = 'podman.podmanMachineEditCPUSupported';
 export const PODMAN_MACHINE_EDIT_MEMORY = 'podman.podmanMachineEditMemorySupported';
 export const PODMAN_MACHINE_EDIT_DISK_SIZE = 'podman.podmanMachineEditDiskSizeSupported';
+export const PODMAN_MACHINE_EDIT_ROOTFUL = 'podman.podmanMachineEditRootfulSupported';
 
 export function initTelemetryLogger(): void {
   telemetryLogger = extensionApi.env.createTelemetryLogger();
@@ -1295,6 +1289,14 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
   initExtensionContext(extensionContext);
 
   initTelemetryLogger();
+
+  // create inversify binding for the extension
+  inversifyBinding = new InversifyBinding(extensionContext, telemetryLogger);
+  const inversifyContainer = await inversifyBinding.init();
+
+  // bind classes to the Inversify container
+  inversifyContainer.bind(PodmanInstall).toSelf().inSingletonScope();
+  const podmanInstall = inversifyContainer.get(PodmanInstall);
 
   if (telemetryLogger) {
     await initializeCertificateDetection(telemetryLogger);
@@ -1899,6 +1901,9 @@ export async function deactivate(): Promise<void> {
   currentConnections.clear();
   containerProviderConnections.clear();
 
+  await inversifyBinding?.dispose();
+  inversifyBinding = undefined;
+
   if (certificateDetectionInterval) {
     clearInterval(certificateDetectionInterval);
     certificateDetectionInterval = undefined;
@@ -1976,7 +1981,10 @@ export async function isHyperVEnabled(): Promise<boolean> {
   if (!extensionApi.env.isWindows) {
     return false;
   }
-  const hyperVCheck = new HyperVCheck(telemetryLogger);
+  const hyperVCheck = new SequenceCheck('Hyper-V Platform', [
+    new HyperVPodmanVersionCheck(),
+    new HyperVCheck(telemetryLogger),
+  ]);
   const hyperVCheckResult = await hyperVCheck.execute();
   return hyperVCheckResult.successful;
 }

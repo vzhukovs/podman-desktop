@@ -18,65 +18,19 @@
 
 import type { RequestOptions } from 'node:http';
 
-import type {
-  HostConfigPortBinding,
-  ManifestCreateOptions,
-  ManifestInspectInfo,
-  ManifestPushOptions,
-} from '@podman-desktop/api';
+import type { ManifestCreateOptions, ManifestInspectInfo, ManifestPushOptions } from '@podman-desktop/api';
 import type DockerModem from 'docker-modem';
 import type { DialOptions } from 'docker-modem';
 import type { VolumeCreateOptions, VolumeCreateResponse } from 'dockerode';
 import Dockerode from 'dockerode';
 
 import type { ImageInfo, PodmanListImagesOptions } from '/@api/image-info.js';
+import type { LibPodPodInfo, LibPodPodInspectInfo } from '/@api/pod-info.js';
 
 export interface PodContainerInfo {
   Id: string;
   Names: string;
   Status: string;
-}
-
-export interface PodInfo {
-  Cgroup: string;
-  Containers: PodContainerInfo[];
-  Created: string;
-  Id: string;
-  InfraId: string;
-  Labels: { [key: string]: string };
-  Name: string;
-  Namespace: string;
-  Networks: string[];
-  Status: string;
-}
-
-export interface PodInspectInfo {
-  CgroupParent: string;
-  CgroupPath: string;
-  Containers: PodContainerInfo[];
-  Created: string;
-  Hostname: string;
-  Id: string;
-  InfraContainerId: string;
-  memory_limit: number;
-  memory_swap: number;
-  Name: string;
-  Namespace: string;
-  NumContainers: number;
-  security_opt: string[];
-  SharedNamespaces: string[];
-  State: string;
-  volumes_from: string[];
-  ExitPolicy: 'continue' | 'stop';
-  RestartPolicy: string;
-  Labels: { [key: string]: string };
-  InfraConfig: {
-    DNSOption?: Array<string>;
-    DNSSearch?: Array<string>;
-    DNSServer?: Array<string>;
-    PortBindings?: HostConfigPortBinding;
-    Networks?: Array<string>;
-  };
 }
 
 export interface PlayKubePodInfo {
@@ -379,15 +333,20 @@ export interface GetImagesOptions {
   names: string[];
 }
 
+export interface NetworkUpdateOptions {
+  adddnsservers?: string[];
+  removednsservers?: string[];
+}
+
 // API of libpod that we want to expose on our side
 export interface LibPod {
   createPod(podOptions: PodCreateOptions): Promise<{ Id: string }>;
   createPodmanContainer(containerCreateOptions: ContainerCreateOptions): Promise<{ Id: string; Warnings: string[] }>;
-  listPods(): Promise<PodInfo[]>;
+  listPods(): Promise<LibPodPodInfo[]>;
   listPodmanContainers(opts?: { all: boolean }): Promise<PodmanContainerInfo[]>;
   prunePods(): Promise<void>;
   podmanAttach(containerId: string): Promise<NodeJS.ReadWriteStream>;
-  getPodInspect(podId: string): Promise<PodInspectInfo>;
+  getPodInspect(podId: string): Promise<LibPodPodInspectInfo>;
   startPod(podId: string): Promise<void>;
   stopPod(podId: string): Promise<void>;
   removePod(podId: string, options?: PodRemoveOptions): Promise<void>;
@@ -403,6 +362,7 @@ export interface LibPod {
   podmanInspectManifest(manifestName: string): Promise<ManifestInspectInfo>;
   podmanPushManifest(manifestOptions: ManifestPushOptions, authInfo?: Dockerode.AuthConfig): Promise<void>;
   podmanRemoveManifest(manifestName: string): Promise<void>;
+  updateNetwork(networkId: string, addDNSServer: string[], removeDNSServer: string[]): Promise<void>;
 }
 
 // change the method from private to public as we're overriding it
@@ -502,7 +462,7 @@ export class LibpodDockerode {
     };
 
     // add listPods
-    prototypeOfDockerode.listPods = function (): Promise<PodInfo[]> {
+    prototypeOfDockerode.listPods = function (): Promise<LibPodPodInfo[]> {
       const optsf = {
         path: '/v4.2.0/libpod/pods/json',
         method: 'GET',
@@ -518,7 +478,7 @@ export class LibpodDockerode {
           if (err) {
             return reject(err);
           }
-          resolve(wrapAs<PodInfo[]>(data));
+          resolve(wrapAs<LibPodPodInfo[]>(data));
         });
       });
     };
@@ -646,7 +606,7 @@ export class LibpodDockerode {
     };
 
     // add getPodInspect
-    prototypeOfDockerode.getPodInspect = function (podId: string): Promise<PodInspectInfo> {
+    prototypeOfDockerode.getPodInspect = function (podId: string): Promise<LibPodPodInspectInfo> {
       const optsf = {
         path: `/v4.2.0/libpod/pods/${podId}/json`,
         method: 'GET',
@@ -664,7 +624,7 @@ export class LibpodDockerode {
           if (err) {
             return reject(err);
           }
-          resolve(wrapAs<PodInspectInfo>(data));
+          resolve(wrapAs<LibPodPodInspectInfo>(data));
         });
       });
     };
@@ -1084,6 +1044,33 @@ export class LibpodDockerode {
             return reject(err);
           }
           resolve(wrapAs<{ Names: string[] }>(data));
+        });
+      });
+    };
+
+    prototypeOfDockerode.updateNetwork = function (
+      networkId: string,
+      addDNSServer: string[],
+      removeDNSServer: string[],
+    ): Promise<void> {
+      const options: NetworkUpdateOptions = { adddnsservers: addDNSServer, removednsservers: removeDNSServer };
+      const optsf = {
+        path: `/v4.2.0/libpod/networks/${networkId}/update`,
+        method: 'POST',
+        options: options,
+        statusCodes: {
+          200: true,
+          204: true,
+          400: 'bad parameter',
+          500: 'server error',
+        },
+      };
+      return new Promise((resolve, reject) => {
+        this.modem.dial(optsf, (err: unknown, data: unknown) => {
+          if (err) {
+            return reject(err);
+          }
+          resolve(wrapAs<void>(data));
         });
       });
     };

@@ -44,6 +44,8 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+const never = (): Promise<never> => new Promise<never>(() => {});
+
 test('expect to display wait message before to receive results', async () => {
   imageCheckerProviders.set([
     {
@@ -52,10 +54,8 @@ test('expect to display wait message before to receive results', async () => {
     },
   ]);
 
-  imageCheckMock.mockImplementation(async () => {
-    // never returns results
-    return new Promise(() => {});
-  });
+  // never returns results
+  vi.mocked(window.imageCheck).mockReturnValue(never());
 
   render(ImageDetailsCheck, {
     imageInfo: {
@@ -70,6 +70,7 @@ test('expect to display wait message before to receive results', async () => {
       SharedSize: 0,
       Labels: {},
       Containers: 0,
+      Digest: 'digest',
     },
   });
 
@@ -87,10 +88,8 @@ test('expect to cancel when clicking the Cancel button', async () => {
     },
   ]);
 
-  imageCheckMock.mockImplementation(async () => {
-    // never returns results
-    return new Promise(() => {});
-  });
+  // never returns results
+  vi.mocked(window.imageCheck).mockReturnValue(never());
 
   render(ImageDetailsCheck, {
     imageInfo: {
@@ -105,6 +104,7 @@ test('expect to cancel when clicking the Cancel button', async () => {
       SharedSize: 0,
       Labels: {},
       Containers: 0,
+      Digest: 'digest',
     },
   });
 
@@ -128,10 +128,8 @@ test('expect to cancel when destroying the component', async () => {
     },
   ]);
 
-  imageCheckMock.mockImplementation(async () => {
-    // never returns results
-    return new Promise(() => {});
-  });
+  // never returns results
+  vi.mocked(window.imageCheck).mockReturnValue(never());
 
   const result = render(ImageDetailsCheck, {
     imageInfo: {
@@ -146,6 +144,7 @@ test('expect to cancel when destroying the component', async () => {
       SharedSize: 0,
       Labels: {},
       Containers: 0,
+      Digest: 'digest',
     },
   });
 
@@ -166,10 +165,8 @@ test('expect to not cancel again when destroying the component after manual canc
     },
   ]);
 
-  imageCheckMock.mockImplementation(async () => {
-    // never returns results
-    return new Promise(() => {});
-  });
+  // never returns results
+  vi.mocked(window.imageCheck).mockReturnValue(never());
 
   const result = render(ImageDetailsCheck, {
     imageInfo: {
@@ -184,6 +181,7 @@ test('expect to not cancel again when destroying the component after manual canc
       SharedSize: 0,
       Labels: {},
       Containers: 0,
+      Digest: 'digest',
     },
   });
 
@@ -235,6 +233,7 @@ test('expect to display results from image checker provider', async () => {
       SharedSize: 0,
       Labels: {},
       Containers: 0,
+      Digest: 'digest',
     },
   });
 
@@ -281,6 +280,7 @@ test('expect to not cancel when destroying the component after displaying result
       SharedSize: 0,
       Labels: {},
       Containers: 0,
+      Digest: 'digest',
     },
   });
 

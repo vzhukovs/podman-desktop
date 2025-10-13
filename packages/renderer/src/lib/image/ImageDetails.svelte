@@ -1,8 +1,6 @@
 <script lang="ts">
 import type { ImageInfo } from '@podman-desktop/api';
 import { StatusIcon, Tab } from '@podman-desktop/ui-svelte';
-import { onDestroy, onMount } from 'svelte';
-import type { Unsubscriber } from 'svelte/store';
 import { router } from 'tinro';
 
 import { containersInfos } from '/@/stores/containers';
@@ -14,7 +12,6 @@ import type { ViewInfoUI } from '/@api/view-info';
 
 import Route from '../../Route.svelte';
 import { imagesInfos } from '../../stores/images';
-import type { ContextUI } from '../context/context';
 import Badge from '../ui/Badge.svelte';
 import DetailsPage from '../ui/DetailsPage.svelte';
 import { getTabUrl, isTabSelected } from '../ui/Util';
@@ -43,9 +40,15 @@ interface Props {
 
 let { imageID, engineId, base64RepoTag }: Props = $props();
 
-let globalContext: ContextUI;
-let viewContributions: ViewInfoUI[] = [];
-let allImages: ImageInfo[];
+let viewContributions: ViewInfoUI[] = $derived.by(() => {
+  return $viewsContributions.filter(
+    view =>
+      view.viewId === IMAGE_DETAILS_VIEW_ICONS ||
+      view.viewId === IMAGE_VIEW_ICONS ||
+      view.viewId === IMAGE_VIEW_BADGES ||
+      view.viewId === IMAGE_DETAILS_VIEW_BADGES,
+  );
+});
 
 const imageUtils = new ImageUtils();
 
@@ -64,73 +67,22 @@ function closeModals(): void {
   renameImageModal = false;
 }
 
-let imageInfo: ImageInfo | undefined = $state();
-let image: ImageInfoUI | undefined = $state();
+let imageInfo: ImageInfo | undefined = $derived($imagesInfos.find(c => c.Id === imageID && c.engineId === engineId));
+let image: ImageInfoUI | undefined = $derived(
+  imageInfo
+    ? imageUtils.getImageInfoUI(imageInfo, base64RepoTag, $containersInfos, $context, viewContributions)
+    : undefined,
+);
 let detailsPage: DetailsPage | undefined = $state();
 
-let showCheckTab: boolean = $state(false);
-let showFilesTab: boolean = $state(false);
-let checkerProvidersUnsubscribe: Unsubscriber;
-let filesProvidersUnsubscribe: Unsubscriber;
-let viewsUnsubscribe: Unsubscriber;
-let contextsUnsubscribe: Unsubscriber;
+let showCheckTab: boolean = $derived($imageCheckerProviders.length > 0);
+let showFilesTab: boolean = $derived($imageFilesProviders.length > 0);
 
-function updateImage(): void {
-  if (!allImages) {
-    return;
-  }
-  imageInfo = allImages.find(c => c.Id === imageID && c.engineId === engineId);
-  let tempImage;
-  if (imageInfo) {
-    tempImage = imageUtils.getImageInfoUI(imageInfo, base64RepoTag, $containersInfos, globalContext, viewContributions);
-  }
-  if (tempImage) {
-    image = tempImage;
-  } else {
+$effect(() => {
+  if (!image) {
     // the image has been deleted
     detailsPage?.close();
   }
-}
-
-onMount(() => {
-  checkerProvidersUnsubscribe = imageCheckerProviders.subscribe(providers => {
-    showCheckTab = providers.length > 0;
-  });
-
-  filesProvidersUnsubscribe = imageFilesProviders.subscribe(providers => {
-    showFilesTab = providers.length > 0;
-  });
-
-  viewsUnsubscribe = viewsContributions.subscribe(value => {
-    viewContributions =
-      value.filter(
-        view =>
-          view.viewId === IMAGE_DETAILS_VIEW_ICONS ||
-          view.viewId === IMAGE_VIEW_ICONS ||
-          view.viewId === IMAGE_VIEW_BADGES ||
-          view.viewId === IMAGE_DETAILS_VIEW_BADGES,
-      ) || [];
-    updateImage();
-  });
-
-  contextsUnsubscribe = context.subscribe(value => {
-    globalContext = value;
-    updateImage();
-  });
-
-  // loading image info
-  return imagesInfos.subscribe(images => {
-    allImages = images;
-    updateImage();
-  });
-});
-
-onDestroy(() => {
-  // unsubscribe from the store
-  checkerProvidersUnsubscribe?.();
-  filesProvidersUnsubscribe?.();
-  viewsUnsubscribe?.();
-  contextsUnsubscribe?.();
 });
 </script>
 
@@ -156,8 +108,7 @@ onDestroy(() => {
           onRenameImage={handleRenameImageModal}
           detailed={true}
           dropdownMenu={false}
-          groupContributions={true}
-          on:update={(): ImageInfoUI | undefined => (image = image)} />
+          groupContributions={true} />
       {/if}
     {/snippet}
     {#snippet tabsSnippet()}
