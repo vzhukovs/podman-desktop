@@ -131,6 +131,7 @@ Kubernetes questions & development:
 [![Mastodon](https://img.shields.io/badge/mastodon-6364ff?style=for-the-badge&logo=mastodon&logoColor=white)](https://fosstodon.org/@podmandesktop)
 [![Bluesky](https://img.shields.io/badge/bluesky-1283FE.svg?style=for-the-badge&logo=Bluesky&logoColor=white)](https://bsky.app/profile/podman-desktop.io)
 
+
 ### Adopters
 
 Check out the [list of companies](./ADOPTERS.md) already using Podman Desktop.
