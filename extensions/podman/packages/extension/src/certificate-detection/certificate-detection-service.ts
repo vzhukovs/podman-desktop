@@ -188,7 +188,7 @@ export class CertificateDetectionService {
   }
 
   protected async getDirectoriesToScan(): Promise<string[]> {
-    const directories: string[] = this.config.certDirectories.system;
+    const directories: string[] = [...this.config.certDirectories.system];
 
     const homeDir = os.homedir();
     const userDirs = this.config.certDirectories.user.map(dir => dir.replace('$HOME', homeDir));
