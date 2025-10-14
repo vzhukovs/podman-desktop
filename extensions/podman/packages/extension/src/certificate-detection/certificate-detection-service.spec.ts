@@ -39,43 +39,53 @@ vi.mock('@podman-desktop/api', async () => {
   };
 });
 
-const mockTelemetryLogger = {
+const mockTelemetryLogger: TelemetryLogger = {
   logUsage: vi.fn(),
   logError: vi.fn(),
   onDidChangeEnableStates: vi.fn(),
   isUsageEnabled: true,
   isErrorsEnabled: true,
   dispose: vi.fn(),
-} as TelemetryLogger;
+};
+
+function createMockDirent(overrides: Partial<Dirent>): Dirent {
+  return {
+    isBlockDevice: (): boolean => false,
+    isCharacterDevice: (): boolean => false,
+    isFIFO: (): boolean => false,
+    isSocket: (): boolean => false,
+    isDirectory: (): boolean => false,
+    isFile: (): boolean => false,
+    isSymbolicLink: (): boolean => false,
+    name: '',
+    path: '',
+    parentPath: '',
+    ...overrides,
+  };
+}
 
 describe('CertificateDetectionService', () => {
-  let service: CertificateDetectionService;
+  let serviceWithTelemetry: CertificateDetectionService;
 
   const createMockFileSystemWithCerts = (registryName: string, certFiles: Dirent[]): void => {
-    const mockDirent = {
+    const mockDirent = createMockDirent({
       name: registryName,
       isDirectory: (): boolean => true,
-      isFile: (): boolean => false,
-      isSymbolicLink: (): boolean => false,
-      isBlockDevice: (): boolean => false,
-      isCharacterDevice: (): boolean => false,
-      isFIFO: (): boolean => false,
-      isSocket: (): boolean => false,
       path: registryName,
       parentPath: '/etc/containers/certs.d',
-    } as Dirent;
+    });
 
     vi.mocked(fs.access).mockResolvedValue();
-    vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
+    vi.mocked(fs.readdir).mockImplementation((async (dirPath: unknown, _options?: unknown) => {
       const pathStr = String(dirPath);
       if (pathStr === '/etc/containers/certs.d') {
-        return [mockDirent] as unknown as Dirent<Buffer>[];
+        return [mockDirent];
       }
       if (pathStr.includes(registryName)) {
-        return certFiles as unknown as Dirent<Buffer>[];
+        return certFiles;
       }
-      return [] as unknown as Dirent<Buffer>[];
-    });
+      return [];
+    }) as typeof fs.readdir);
   };
 
   beforeEach(() => {
@@ -84,7 +94,7 @@ describe('CertificateDetectionService', () => {
     vi.mocked(env).isMac = false;
     vi.mocked(env).isLinux = false;
     vi.mocked(os.homedir).mockReturnValue('/home/user');
-    service = new CertificateDetectionService();
+    serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
   });
 
   describe('constructor', () => {
@@ -94,7 +104,6 @@ describe('CertificateDetectionService', () => {
     });
 
     test('should create service with telemetry logger', () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       expect(serviceWithTelemetry).toBeDefined();
     });
 
@@ -128,7 +137,6 @@ describe('CertificateDetectionService', () => {
     });
 
     test('should return result with no certificates when directories do not exist and telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(fs.access).mockRejectedValue(new Error('ENOENT: no such file or directory'));
 
       const result = await serviceWithTelemetry.detectCustomCertificates();
@@ -138,50 +146,37 @@ describe('CertificateDetectionService', () => {
         certificateCount: 0,
         scanDurationMs: expect.any(Number),
         errors: [],
-        isWindows: false,
-        isMac: false,
-        isLinux: false,
       });
     });
 
     test('should detect certificates in system directory with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
-      const mockDirent = {
+      const mockDirent = createMockDirent({
         name: 'registry.example.com',
         isDirectory: (): boolean => true,
-        isFile: (): boolean => false,
-        isSymbolicLink: (): boolean => false,
-        isBlockDevice: (): boolean => false,
-        isCharacterDevice: (): boolean => false,
-        isFIFO: (): boolean => false,
-        isSocket: (): boolean => false,
         path: 'registry.example.com',
         parentPath: '/etc/containers/certs.d',
-      } as Dirent;
-      const mockCertFile = {
+      });
+      const mockCertFile = createMockDirent({
         name: 'ca.crt',
-        isDirectory: (): boolean => false,
         isFile: (): boolean => true,
-        isSymbolicLink: (): boolean => false,
-        isBlockDevice: (): boolean => false,
-        isCharacterDevice: (): boolean => false,
-        isFIFO: (): boolean => false,
-        isSocket: (): boolean => false,
         path: 'ca.crt',
         parentPath: '/etc/containers/certs.d/registry.example.com',
-      } as Dirent;
+      });
 
       vi.mocked(fs.access).mockResolvedValue();
-      vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
+      vi.mocked(fs.readdir).mockImplementation((async (dirPath: unknown, _options?: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return [mockDirent] as unknown as Dirent<Buffer>[];
+          return [mockDirent];
+        }
+        if (pathStr.includes('.config/containers/certs.d')) {
+          return [];
         }
         if (pathStr.includes('registry.example.com')) {
-          return [mockCertFile] as unknown as Dirent<Buffer>[];
+          return [mockCertFile];
         }
-        return [] as unknown as Dirent<Buffer>[];
-      });
+        return [];
+      }) as typeof fs.readdir);
 
       const result = await serviceWithTelemetry.detectCustomCertificates();
 
@@ -194,45 +189,41 @@ describe('CertificateDetectionService', () => {
     });
 
     test('should detect certificates in user directory with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
-      const mockDirent = {
+      // Override service config to only scan user directories
+      const customConfig: Partial<CertificateDetectionConfig> = {
+        certDirectories: {
+          system: [],
+          user: ['$HOME/.config/containers/certs.d'],
+        },
+      };
+      const customService = new CertificateDetectionService(mockTelemetryLogger, customConfig);
+
+      const mockDirent = createMockDirent({
         name: 'localhost:5000',
         isDirectory: (): boolean => true,
-        isFile: (): boolean => false,
-        isSymbolicLink: (): boolean => false,
-        isBlockDevice: (): boolean => false,
-        isCharacterDevice: (): boolean => false,
-        isFIFO: (): boolean => false,
-        isSocket: (): boolean => false,
         path: 'localhost:5000',
         parentPath: '/home/user/.config/containers/certs.d',
-      } as Dirent;
-      const mockCertFile = {
+      });
+      const mockCertFile = createMockDirent({
         name: 'server.cert',
-        isDirectory: (): boolean => false,
         isFile: (): boolean => true,
-        isSymbolicLink: (): boolean => false,
-        isBlockDevice: (): boolean => false,
-        isCharacterDevice: (): boolean => false,
-        isFIFO: (): boolean => false,
-        isSocket: (): boolean => false,
         path: 'server.cert',
         parentPath: '/home/user/.config/containers/certs.d/localhost:5000',
-      } as Dirent;
-
-      vi.mocked(fs.access).mockResolvedValue();
-      vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
-        const pathStr = String(dirPath);
-        if (pathStr.includes('.config/containers/certs.d') && !pathStr.includes('localhost:5000')) {
-          return [mockDirent] as unknown as Dirent<Buffer>[];
-        }
-        if (pathStr.includes('localhost:5000')) {
-          return [mockCertFile] as unknown as Dirent<Buffer>[];
-        }
-        return [] as unknown as Dirent<Buffer>[];
       });
 
-      const result = await serviceWithTelemetry.detectCustomCertificates();
+      vi.mocked(fs.access).mockResolvedValue();
+      vi.mocked(fs.readdir).mockImplementation((async (dirPath: unknown, _options?: unknown) => {
+        const pathStr = String(dirPath);
+        if (pathStr.includes('.config/containers/certs.d') && !pathStr.includes('localhost:5000')) {
+          return [mockDirent];
+        }
+        if (pathStr.includes('localhost:5000')) {
+          return [mockCertFile];
+        }
+        return [];
+      }) as typeof fs.readdir);
+
+      const result = await customService.detectCustomCertificates();
 
       expect(result).toMatchObject({
         hasCustomCertificates: true,
@@ -259,7 +250,6 @@ describe('CertificateDetectionService', () => {
     });
 
     test('should handle general errors gracefully with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockRejectedValue(new Error('Critical file system error'));
 
@@ -277,7 +267,6 @@ describe('CertificateDetectionService', () => {
     });
 
     test('should send telemetry when enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(fs.access).mockRejectedValue(new Error('ENOENT'));
 
       await serviceWithTelemetry.detectCustomCertificates();
@@ -311,66 +300,75 @@ describe('CertificateDetectionService', () => {
 
   describe('platform detection', () => {
     test('should detect Windows environment with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(env).isWindows = true;
       vi.mocked(fs.access).mockRejectedValue(new Error('ENOENT'));
 
-      const result = await serviceWithTelemetry.detectCustomCertificates();
+      await serviceWithTelemetry.detectCustomCertificates();
 
-      expect(result).toMatchObject({
-        isWindows: true,
-        isMac: false,
-        isLinux: false,
-      });
+      expect(mockTelemetryLogger.logUsage).toHaveBeenCalledWith(
+        'custom_certs',
+        expect.objectContaining({
+          is_windows: true,
+          is_mac: false,
+          is_linux: false,
+        }),
+      );
     });
 
     test('should detect macOS environment with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(env).isMac = true;
       vi.mocked(fs.access).mockRejectedValue(new Error('ENOENT'));
 
-      const result = await serviceWithTelemetry.detectCustomCertificates();
+      await serviceWithTelemetry.detectCustomCertificates();
 
-      expect(result).toMatchObject({
-        isWindows: false,
-        isMac: true,
-        isLinux: false,
-      });
+      expect(mockTelemetryLogger.logUsage).toHaveBeenCalledWith(
+        'custom_certs',
+        expect.objectContaining({
+          is_windows: false,
+          is_mac: true,
+          is_linux: false,
+        }),
+      );
     });
 
     test('should detect Linux environment with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(env).isLinux = true;
       vi.mocked(fs.access).mockRejectedValue(new Error('ENOENT'));
 
-      const result = await serviceWithTelemetry.detectCustomCertificates();
+      await serviceWithTelemetry.detectCustomCertificates();
 
-      expect(result).toMatchObject({
-        isWindows: false,
-        isMac: false,
-        isLinux: true,
-      });
+      expect(mockTelemetryLogger.logUsage).toHaveBeenCalledWith(
+        'custom_certs',
+        expect.objectContaining({
+          is_windows: false,
+          is_mac: false,
+          is_linux: true,
+        }),
+      );
     });
   });
 
   describe('Windows/WSL2 path handling', () => {
     test('should handle Windows paths correctly with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(env).isWindows = true;
       vi.mocked(os.homedir).mockReturnValue('C:\\Users\\testuser');
 
       vi.mocked(fs.access).mockResolvedValue();
       vi.mocked(fs.readdir).mockResolvedValue([]);
 
-      const result = await serviceWithTelemetry.detectCustomCertificates();
+      await serviceWithTelemetry.detectCustomCertificates();
 
-      expect(result.isWindows).toBe(true);
       expect(fs.access).toHaveBeenCalledWith('/etc/containers/certs.d', expect.any(Number));
       expect(fs.access).toHaveBeenCalledWith(expect.stringContaining('testuser'), expect.any(Number));
+      expect(mockTelemetryLogger.logUsage).toHaveBeenCalledWith(
+        'custom_certs',
+        expect.objectContaining({
+          is_windows: true,
+        }),
+      );
     });
 
     test('should handle WSL2 paths correctly with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(env).isWindows = true;
       vi.mocked(os.homedir).mockReturnValue('/mnt/c/Users/testuser');
 
@@ -384,7 +382,6 @@ describe('CertificateDetectionService', () => {
     });
 
     test('should handle macOS paths correctly with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(env).isMac = true;
       vi.mocked(os.homedir).mockReturnValue('/Users/testuser');
 
@@ -398,7 +395,6 @@ describe('CertificateDetectionService', () => {
     });
 
     test('should handle Linux paths correctly with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
       vi.mocked(env).isLinux = true;
       vi.mocked(os.homedir).mockReturnValue('/home/testuser');
 
@@ -414,45 +410,26 @@ describe('CertificateDetectionService', () => {
 
   describe('certificate file validation', () => {
     test('should count valid certificate extensions with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
-      const mockFiles = [
-        {
+      const mockFiles: Dirent[] = [
+        createMockDirent({
           name: 'ca.crt',
-          isDirectory: (): boolean => false,
           isFile: (): boolean => true,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'ca.crt',
           parentPath: '/etc/containers/certs.d/registry.example.com',
-        },
-        {
+        }),
+        createMockDirent({
           name: 'server.cert',
-          isDirectory: (): boolean => false,
           isFile: (): boolean => true,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'server.cert',
           parentPath: '/etc/containers/certs.d/registry.example.com',
-        },
-        {
+        }),
+        createMockDirent({
           name: 'client.key',
-          isDirectory: (): boolean => false,
           isFile: (): boolean => true,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'client.key',
           parentPath: '/etc/containers/certs.d/registry.example.com',
-        },
-      ] as Dirent[];
+        }),
+      ];
 
       createMockFileSystemWithCerts('registry.example.com', mockFiles);
 
@@ -462,45 +439,26 @@ describe('CertificateDetectionService', () => {
     });
 
     test('should exclude files with excluded extensions with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
-      const mockFiles = [
-        {
+      const mockFiles: Dirent[] = [
+        createMockDirent({
           name: 'ca.crt',
-          isDirectory: (): boolean => false,
           isFile: (): boolean => true,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'ca.crt',
           parentPath: '/etc/containers/certs.d/registry.example.com',
-        },
-        {
+        }),
+        createMockDirent({
           name: 'excluded.pem',
-          isDirectory: (): boolean => false,
           isFile: (): boolean => true,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'excluded.pem',
           parentPath: '/etc/containers/certs.d/registry.example.com',
-        },
-        {
+        }),
+        createMockDirent({
           name: 'excluded.cer',
-          isDirectory: (): boolean => false,
           isFile: (): boolean => true,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'excluded.cer',
           parentPath: '/etc/containers/certs.d/registry.example.com',
-        },
-      ] as Dirent[];
+        }),
+      ];
 
       createMockFileSystemWithCerts('registry.example.com', mockFiles);
 
@@ -510,45 +468,32 @@ describe('CertificateDetectionService', () => {
     });
 
     test('should ignore files in root directory (depth 0) with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
-      const mockFiles = [
-        {
+      const mockFiles: Dirent[] = [
+        createMockDirent({
           name: 'ca.crt',
-          isDirectory: (): boolean => false,
           isFile: (): boolean => true,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'ca.crt',
           parentPath: '/etc/containers/certs.d',
-        },
-        {
+        }),
+        createMockDirent({
           name: 'registry.example.com',
           isDirectory: (): boolean => true,
-          isFile: (): boolean => false,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'registry.example.com',
           parentPath: '/etc/containers/certs.d',
-        },
-      ] as Dirent[];
+        }),
+      ];
 
       vi.mocked(fs.access).mockResolvedValue();
-      vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
+      vi.mocked(fs.readdir).mockImplementation((async (dirPath: unknown, _options?: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return mockFiles as unknown as Dirent<Buffer>[];
+          return mockFiles;
         }
         if (pathStr.includes('registry.example.com')) {
-          return [] as unknown as Dirent<Buffer>[];
+          return [];
         }
-        return [] as unknown as Dirent<Buffer>[];
-      });
+        return [];
+      }) as typeof fs.readdir);
 
       const result = await serviceWithTelemetry.detectCustomCertificates();
 
@@ -558,54 +503,35 @@ describe('CertificateDetectionService', () => {
 
   describe('registry directory validation', () => {
     test('should accept valid hostname formats with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
-      const validDirectories = [
-        {
+      const validDirectories: Dirent[] = [
+        createMockDirent({
           name: 'registry.example.com',
           isDirectory: (): boolean => true,
-          isFile: (): boolean => false,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'registry.example.com',
           parentPath: '/etc/containers/certs.d',
-        },
-        {
+        }),
+        createMockDirent({
           name: 'localhost',
           isDirectory: (): boolean => true,
-          isFile: (): boolean => false,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'localhost',
           parentPath: '/etc/containers/certs.d',
-        },
-        {
+        }),
+        createMockDirent({
           name: 'example.com',
           isDirectory: (): boolean => true,
-          isFile: (): boolean => false,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'example.com',
           parentPath: '/etc/containers/certs.d',
-        },
-      ] as Dirent[];
+        }),
+      ];
 
       vi.mocked(fs.access).mockResolvedValue();
-      vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
+      vi.mocked(fs.readdir).mockImplementation((async (dirPath: unknown, _options?: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return validDirectories as unknown as Dirent<Buffer>[];
+          return validDirectories;
         }
-        return [] as unknown as Dirent<Buffer>[];
-      });
+        return [];
+      }) as typeof fs.readdir);
 
       await serviceWithTelemetry.detectCustomCertificates();
 
@@ -615,42 +541,29 @@ describe('CertificateDetectionService', () => {
     });
 
     test('should accept valid hostname:port formats with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
-      const validDirectories = [
-        {
+      const validDirectories: Dirent[] = [
+        createMockDirent({
           name: 'registry.example.com:5000',
           isDirectory: (): boolean => true,
-          isFile: (): boolean => false,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'registry.example.com:5000',
           parentPath: '/etc/containers/certs.d',
-        },
-        {
+        }),
+        createMockDirent({
           name: 'localhost:8080',
           isDirectory: (): boolean => true,
-          isFile: (): boolean => false,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'localhost:8080',
           parentPath: '/etc/containers/certs.d',
-        },
-      ] as Dirent[];
+        }),
+      ];
 
       vi.mocked(fs.access).mockResolvedValue();
-      vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
+      vi.mocked(fs.readdir).mockImplementation((async (dirPath: unknown, _options?: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return validDirectories as unknown as Dirent<Buffer>[];
+          return validDirectories;
         }
-        return [] as unknown as Dirent<Buffer>[];
-      });
+        return [];
+      }) as typeof fs.readdir);
 
       await serviceWithTelemetry.detectCustomCertificates();
 
@@ -659,54 +572,35 @@ describe('CertificateDetectionService', () => {
     });
 
     test('should reject invalid directory names with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
-      const invalidDirectories = [
-        {
+      const invalidDirectories: Dirent[] = [
+        createMockDirent({
           name: '.hidden',
           isDirectory: (): boolean => true,
-          isFile: (): boolean => false,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: '.hidden',
           parentPath: '/etc/containers/certs.d',
-        },
-        {
+        }),
+        createMockDirent({
           name: '-invalid',
           isDirectory: (): boolean => true,
-          isFile: (): boolean => false,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: '-invalid',
           parentPath: '/etc/containers/certs.d',
-        },
-        {
+        }),
+        createMockDirent({
           name: 'invalid_name',
           isDirectory: (): boolean => true,
-          isFile: (): boolean => false,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'invalid_name',
           parentPath: '/etc/containers/certs.d',
-        },
-      ] as Dirent[];
+        }),
+      ];
 
       vi.mocked(fs.access).mockResolvedValue();
-      vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
+      vi.mocked(fs.readdir).mockImplementation((async (dirPath: unknown, _options?: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return invalidDirectories as unknown as Dirent<Buffer>[];
+          return invalidDirectories;
         }
-        return [] as unknown as Dirent<Buffer>[];
-      });
+        return [];
+      }) as typeof fs.readdir);
 
       await serviceWithTelemetry.detectCustomCertificates();
 
@@ -716,42 +610,30 @@ describe('CertificateDetectionService', () => {
     });
 
     test('should ignore symbolic links by default with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
-      const directories = [
-        {
+      const directories: Dirent[] = [
+        createMockDirent({
           name: 'registry.example.com',
           isDirectory: (): boolean => true,
-          isFile: (): boolean => false,
           isSymbolicLink: (): boolean => true,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'registry.example.com',
           parentPath: '/etc/containers/certs.d',
-        },
-        {
+        }),
+        createMockDirent({
           name: 'localhost',
           isDirectory: (): boolean => true,
-          isFile: (): boolean => false,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'localhost',
           parentPath: '/etc/containers/certs.d',
-        },
-      ] as Dirent[];
+        }),
+      ];
 
       vi.mocked(fs.access).mockResolvedValue();
-      vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
+      vi.mocked(fs.readdir).mockImplementation((async (dirPath: unknown, _options?: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return directories as unknown as Dirent<Buffer>[];
+          return directories;
         }
-        return [] as unknown as Dirent<Buffer>[];
-      });
+        return [];
+      }) as typeof fs.readdir);
 
       await serviceWithTelemetry.detectCustomCertificates();
 
@@ -765,42 +647,30 @@ describe('CertificateDetectionService', () => {
       };
       const serviceWithSymlinks = new CertificateDetectionService(mockTelemetryLogger, followSymlinksConfig);
 
-      const mockDirent = {
+      const mockDirent = createMockDirent({
         name: 'registry.example.com',
         isDirectory: (): boolean => true,
-        isFile: (): boolean => false,
-        isSymbolicLink: (): boolean => false,
-        isBlockDevice: (): boolean => false,
-        isCharacterDevice: (): boolean => false,
-        isFIFO: (): boolean => false,
-        isSocket: (): boolean => false,
         path: 'registry.example.com',
         parentPath: '/etc/containers/certs.d',
-      } as Dirent;
-      const mockSymlinkFile = {
+      });
+      const mockSymlinkFile = createMockDirent({
         name: 'symlink.crt',
-        isDirectory: (): boolean => false,
-        isFile: (): boolean => false,
         isSymbolicLink: (): boolean => true,
-        isBlockDevice: (): boolean => false,
-        isCharacterDevice: (): boolean => false,
-        isFIFO: (): boolean => false,
-        isSocket: (): boolean => false,
         path: 'symlink.crt',
         parentPath: '/etc/containers/certs.d/registry.example.com',
-      } as Dirent;
+      });
 
       vi.mocked(fs.access).mockResolvedValue();
-      vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
+      vi.mocked(fs.readdir).mockImplementation((async (dirPath: unknown, _options?: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return [mockDirent] as unknown as Dirent<Buffer>[];
+          return [mockDirent];
         }
         if (pathStr.includes('registry.example.com')) {
-          return [mockSymlinkFile] as unknown as Dirent<Buffer>[];
+          return [mockSymlinkFile];
         }
-        return [] as unknown as Dirent<Buffer>[];
-      });
+        return [];
+      }) as typeof fs.readdir);
 
       const result = await serviceWithSymlinks.detectCustomCertificates();
 
@@ -810,33 +680,26 @@ describe('CertificateDetectionService', () => {
 
   describe('error handling', () => {
     test('should collect directory scan errors with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
-      const mockDirent = {
+      const mockDirent = createMockDirent({
         name: 'registry.example.com',
         isDirectory: (): boolean => true,
-        isFile: (): boolean => false,
-        isSymbolicLink: (): boolean => false,
-        isBlockDevice: (): boolean => false,
-        isCharacterDevice: (): boolean => false,
-        isFIFO: (): boolean => false,
-        isSocket: (): boolean => false,
         path: 'registry.example.com',
         parentPath: '/etc/containers/certs.d',
-      } as Dirent;
+      });
 
       vi.mocked(fs.access).mockResolvedValue();
-      vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
+      vi.mocked(fs.readdir).mockImplementation((async (dirPath: unknown, _options?: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return [mockDirent] as unknown as Dirent<Buffer>[];
+          return [mockDirent];
         }
         if (pathStr.includes('registry.example.com')) {
           const error = new Error('Permission denied') as NodeJS.ErrnoException;
           error.code = 'EACCES';
           throw error;
         }
-        return [] as unknown as Dirent<Buffer>[];
-      });
+        return [];
+      }) as typeof fs.readdir);
 
       const result = await serviceWithTelemetry.detectCustomCertificates();
 
@@ -844,60 +707,41 @@ describe('CertificateDetectionService', () => {
     });
 
     test('should continue scanning after directory errors with telemetry enabled', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
-      const mockDirents = [
-        {
+      const mockDirents: Dirent[] = [
+        createMockDirent({
           name: 'registry.example.com',
           isDirectory: (): boolean => true,
-          isFile: (): boolean => false,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'registry.example.com',
           parentPath: '/etc/containers/certs.d',
-        },
-        {
+        }),
+        createMockDirent({
           name: 'localhost',
           isDirectory: (): boolean => true,
-          isFile: (): boolean => false,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'localhost',
           parentPath: '/etc/containers/certs.d',
-        },
-      ] as Dirent[];
-      const mockCertFile = {
+        }),
+      ];
+      const mockCertFile = createMockDirent({
         name: 'ca.crt',
-        isDirectory: (): boolean => false,
         isFile: (): boolean => true,
-        isSymbolicLink: (): boolean => false,
-        isBlockDevice: (): boolean => false,
-        isCharacterDevice: (): boolean => false,
-        isFIFO: (): boolean => false,
-        isSocket: (): boolean => false,
         path: 'ca.crt',
         parentPath: '/etc/containers/certs.d/localhost',
-      } as Dirent;
+      });
 
       vi.mocked(fs.access).mockResolvedValue();
-      vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
+      vi.mocked(fs.readdir).mockImplementation((async (dirPath: unknown, _options?: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return mockDirents as unknown as Dirent<Buffer>[];
+          return mockDirents;
         }
         if (pathStr.includes('registry.example.com')) {
           throw new Error('Permission denied');
         }
         if (pathStr.includes('localhost')) {
-          return [mockCertFile] as unknown as Dirent<Buffer>[];
+          return [mockCertFile];
         }
-        return [] as unknown as Dirent<Buffer>[];
-      });
+        return [];
+      }) as typeof fs.readdir);
 
       const result = await serviceWithTelemetry.detectCustomCertificates();
 
@@ -908,6 +752,7 @@ describe('CertificateDetectionService', () => {
 
   describe('updateConfig', () => {
     test('should update configuration', () => {
+      const service = new CertificateDetectionService();
       const newConfig: Partial<CertificateDetectionConfig> = {
         scanTimeoutMs: 15000,
         validCertExtensions: ['.crt', '.pem'],
@@ -919,34 +764,26 @@ describe('CertificateDetectionService', () => {
 
   describe('telemetry formatting', () => {
     test('should format errors correctly in telemetry', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
-
-      const mockDirent = {
+      const mockDirent = createMockDirent({
         name: 'registry.example.com',
         isDirectory: (): boolean => true,
-        isFile: (): boolean => false,
-        isSymbolicLink: (): boolean => false,
-        isBlockDevice: (): boolean => false,
-        isCharacterDevice: (): boolean => false,
-        isFIFO: (): boolean => false,
-        isSocket: (): boolean => false,
         path: 'registry.example.com',
         parentPath: '/etc/containers/certs.d',
-      } as Dirent;
+      });
 
       vi.mocked(fs.access).mockResolvedValue();
-      vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
+      vi.mocked(fs.readdir).mockImplementation((async (dirPath: unknown, _options?: unknown) => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return [mockDirent] as unknown as Dirent<Buffer>[];
+          return [mockDirent];
         }
         if (pathStr.includes('registry.example.com')) {
           const error = new Error('Access denied') as NodeJS.ErrnoException;
           error.code = 'EACCES';
           throw error;
         }
-        return [] as unknown as Dirent<Buffer>[];
-      });
+        return [];
+      }) as typeof fs.readdir);
 
       await serviceWithTelemetry.detectCustomCertificates();
 
@@ -959,39 +796,26 @@ describe('CertificateDetectionService', () => {
     });
 
     test('should format multiple errors correctly in telemetry', async () => {
-      const serviceWithTelemetry = new CertificateDetectionService(mockTelemetryLogger);
-      const mockDirents = [
-        {
+      const mockDirents: Dirent[] = [
+        createMockDirent({
           name: 'registry1.example.com',
           isDirectory: (): boolean => true,
-          isFile: (): boolean => false,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'registry1.example.com',
           parentPath: '/etc/containers/certs.d',
-        },
-        {
+        }),
+        createMockDirent({
           name: 'registry2.example.com',
           isDirectory: (): boolean => true,
-          isFile: (): boolean => false,
-          isSymbolicLink: (): boolean => false,
-          isBlockDevice: (): boolean => false,
-          isCharacterDevice: (): boolean => false,
-          isFIFO: (): boolean => false,
-          isSocket: (): boolean => false,
           path: 'registry2.example.com',
           parentPath: '/etc/containers/certs.d',
-        },
-      ] as Dirent[];
+        }),
+      ];
 
       vi.mocked(fs.access).mockResolvedValue();
-      vi.mocked(fs.readdir).mockImplementation(async (dirPath: unknown) => {
+      vi.mocked(fs.readdir).mockImplementation((async (dirPath: unknown, _options?: unknown): Promise<Dirent[]> => {
         const pathStr = String(dirPath);
         if (pathStr === '/etc/containers/certs.d') {
-          return mockDirents as unknown as Dirent<Buffer>[];
+          return mockDirents;
         }
         if (pathStr.includes('registry1.example.com')) {
           const error = new Error('Error 1') as NodeJS.ErrnoException;
@@ -1001,8 +825,8 @@ describe('CertificateDetectionService', () => {
         if (pathStr.includes('registry2.example.com')) {
           throw new Error('Error 2');
         }
-        return [] as unknown as Dirent<Buffer>[];
-      });
+        return [];
+      }) as typeof fs.readdir);
 
       await serviceWithTelemetry.detectCustomCertificates();
 

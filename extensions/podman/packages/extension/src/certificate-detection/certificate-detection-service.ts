@@ -27,10 +27,7 @@ export interface CertificateDetectionResult {
   hasCustomCertificates: boolean;
   certificateCount: number;
   scanDurationMs: number;
-  isWindows?: boolean;
-  isMac?: boolean;
-  isLinux?: boolean;
-  errors?: DetectionError[];
+  errors: DetectionError[];
 }
 
 export interface DetectionError {
@@ -98,6 +95,7 @@ export class CertificateDetectionService {
       hasCustomCertificates: false,
       certificateCount: 0,
       scanDurationMs: 0,
+      errors: [],
     };
   }
 
@@ -107,9 +105,6 @@ export class CertificateDetectionService {
       certificateCount: 0,
       scanDurationMs: 0,
       errors: [],
-      isWindows: extensionApi.env.isWindows,
-      isLinux: extensionApi.env.isLinux,
-      isMac: extensionApi.env.isMac,
     };
 
     const directories = await this.getDirectoriesToScan();
@@ -122,7 +117,7 @@ export class CertificateDetectionService {
       await Promise.race([scanPromise, timeoutPromise]);
     } catch (error) {
       if (error instanceof Error && error.message === 'Scan timeout') {
-        result.errors?.push({ error: 'Scan operation timed out' });
+        result.errors.push({ error: 'Scan operation timed out' });
       } else {
         throw error;
       }
@@ -157,7 +152,7 @@ export class CertificateDetectionService {
           error: error.message,
           code: (error as NodeJS.ErrnoException).code,
         };
-        result.errors?.push(errorInfo);
+        result.errors.push(errorInfo);
       }
     }
   }
@@ -193,9 +188,7 @@ export class CertificateDetectionService {
   }
 
   protected async getDirectoriesToScan(): Promise<string[]> {
-    const directories: string[] = [];
-
-    directories.push(...this.config.certDirectories.system);
+    const directories: string[] = this.config.certDirectories.system;
 
     const homeDir = os.homedir();
     const userDirs = this.config.certDirectories.user.map(dir => dir.replace('$HOME', homeDir));
@@ -222,12 +215,12 @@ export class CertificateDetectionService {
       using_custom_certificates: result.hasCustomCertificates,
       certificate_count: result.certificateCount,
       scan_duration_ms: result.scanDurationMs,
-      is_windows: result.isWindows ?? false,
-      is_linux: result.isLinux ?? false,
-      is_mac: result.isMac ?? false,
+      is_windows: extensionApi.env.isWindows,
+      is_linux: extensionApi.env.isLinux,
+      is_mac: extensionApi.env.isMac,
       errors:
         result.errors
-          ?.map(e => {
+          .map(e => {
             const errorMsg = e.error;
             const codeMsg = e.code ? ` (${e.code})` : '';
             return `${errorMsg}${codeMsg}`;

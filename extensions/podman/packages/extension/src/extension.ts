@@ -2317,8 +2317,8 @@ async function initializeCertificateDetection(telemetryLogger: extensionApi.Tele
   certificateDetectionInterval = setInterval(
     () => {
       if (certificateDetectionService) {
-        certificateDetectionService.detectCustomCertificates().catch(() => {
-          // Ignore
+        certificateDetectionService.detectCustomCertificates().catch((error: unknown) => {
+          console.warn(`Can't detect custom registry certificates: ${error}`);
         });
       }
     },
