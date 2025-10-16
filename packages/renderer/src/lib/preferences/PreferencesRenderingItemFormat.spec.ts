@@ -350,11 +350,9 @@ test('Expect tooltip text shows info when input is less than minimum', async () 
     minimum: 1,
     maximum: 34,
   };
-  render(PreferencesRenderingItemFormat, {
-    record,
+  await awaitRender(record, {
     initialValue: getInitialValue(record),
   });
-  await tick();
 
   const input = screen.getByLabelText('record-description');
   await userEvent.click(input);
@@ -379,11 +377,9 @@ test('Expect tooltip text shows info when input is higher than maximum', async (
     minimum: 1,
     maximum: 34,
   };
-  render(PreferencesRenderingItemFormat, {
-    record,
+  await awaitRender(record, {
     initialValue: getInitialValue(record),
   });
-  await tick();
 
   const input = screen.getByLabelText('record-description');
   await userEvent.click(input);
