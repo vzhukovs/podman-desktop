@@ -10,7 +10,7 @@
   min-width: 0;
 }
 
-.tooltip-content :global(.flew-row) {
+.tooltip-content :global(.flex-row) {
   flex-wrap: wrap;
 }
 </style>
