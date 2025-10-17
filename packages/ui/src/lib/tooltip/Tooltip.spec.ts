@@ -20,7 +20,7 @@ import '@testing-library/jest-dom/vitest';
 
 import { autoUpdate, computePosition } from '@floating-ui/dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
-import { assert, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { tooltipHidden } from './tooltip-store';
 import TooltipTestComponent from './TooltipTestComponent.svelte';
@@ -46,10 +46,9 @@ describe('Tooltip', () => {
   test('tooltip is hidden when tooltipHidden is true', async () => {
     tooltipHidden.set(false);
 
-    const { container } = render(TooltipTestComponent, { tip: 'test 1' });
+    render(TooltipTestComponent, { tip: 'test 1' });
 
-    const slot = container.querySelector('.tooltip-slot');
-    assert(slot);
+    const slot = screen.getByTestId('tooltip-trigger');
     expect(slot).toBeInTheDocument();
     await fireEvent.mouseEnter(slot);
 
@@ -74,8 +73,7 @@ describe('Tooltip', () => {
   test('tooltip z-index is correctly set', async () => {
     const { container } = render(TooltipTestComponent, { tip: 'my tooltip' });
 
-    const slot = container.querySelector('.tooltip-slot');
-    assert(slot);
+    const slot = screen.getByTestId('tooltip-trigger');
     await fireEvent.mouseEnter(slot);
 
     await waitFor(() => {
@@ -85,10 +83,9 @@ describe('Tooltip', () => {
   });
 
   test('tooltip shows on mouse enter and hides on mouse leave', async () => {
-    const { container } = render(TooltipTestComponent, { tip: 'hover text' });
+    render(TooltipTestComponent, { tip: 'hover text' });
 
-    const slot = container.querySelector('.tooltip-slot');
-    assert(slot);
+    const slot = screen.getByTestId('tooltip-trigger');
 
     expect(screen.queryByText('hover text')).not.toBeInTheDocument();
 
@@ -106,10 +103,9 @@ describe('Tooltip', () => {
   });
 
   test('tooltip respects top placement prop', async () => {
-    const { container } = render(TooltipTestComponent, { tip: 'top tooltip', top: true });
+    render(TooltipTestComponent, { tip: 'top tooltip', top: true });
 
-    const slot = container.querySelector('.tooltip-slot');
-    assert(slot);
+    const slot = screen.getByTestId('tooltip-trigger');
     await fireEvent.mouseEnter(slot);
 
     await waitFor(() => {
@@ -122,10 +118,9 @@ describe('Tooltip', () => {
   });
 
   test('tooltip respects bottom placement prop', async () => {
-    const { container } = render(TooltipTestComponent, { tip: 'bottom tooltip', bottom: true });
+    render(TooltipTestComponent, { tip: 'bottom tooltip', bottom: true });
 
-    const slot = container.querySelector('.tooltip-slot');
-    assert(slot);
+    const slot = screen.getByTestId('tooltip-trigger');
     await fireEvent.mouseEnter(slot);
 
     await waitFor(() => {
@@ -138,10 +133,9 @@ describe('Tooltip', () => {
   });
 
   test('tooltip respects left placement prop', async () => {
-    const { container } = render(TooltipTestComponent, { tip: 'left tooltip', left: true });
+    render(TooltipTestComponent, { tip: 'left tooltip', left: true });
 
-    const slot = container.querySelector('.tooltip-slot');
-    assert(slot);
+    const slot = screen.getByTestId('tooltip-trigger');
     await fireEvent.mouseEnter(slot);
 
     await waitFor(() => {
@@ -154,10 +148,9 @@ describe('Tooltip', () => {
   });
 
   test('tooltip respects right placement prop', async () => {
-    const { container } = render(TooltipTestComponent, { tip: 'right tooltip', right: true });
+    render(TooltipTestComponent, { tip: 'right tooltip', right: true });
 
-    const slot = container.querySelector('.tooltip-slot');
-    assert(slot);
+    const slot = screen.getByTestId('tooltip-trigger');
     await fireEvent.mouseEnter(slot);
 
     await waitFor(() => {
@@ -170,10 +163,9 @@ describe('Tooltip', () => {
   });
 
   test('tooltip respects topLeft placement prop', async () => {
-    const { container } = render(TooltipTestComponent, { tip: 'top-left tooltip', topLeft: true });
+    render(TooltipTestComponent, { tip: 'top-left tooltip', topLeft: true });
 
-    const slot = container.querySelector('.tooltip-slot');
-    assert(slot);
+    const slot = screen.getByTestId('tooltip-trigger');
     await fireEvent.mouseEnter(slot);
 
     await waitFor(() => {
@@ -186,10 +178,9 @@ describe('Tooltip', () => {
   });
 
   test('tooltip respects bottomRight placement prop', async () => {
-    const { container } = render(TooltipTestComponent, { tip: 'bottom-right tooltip', bottomRight: true });
+    render(TooltipTestComponent, { tip: 'bottom-right tooltip', bottomRight: true });
 
-    const slot = container.querySelector('.tooltip-slot');
-    assert(slot);
+    const slot = screen.getByTestId('tooltip-trigger');
     await fireEvent.mouseEnter(slot);
 
     await waitFor(() => {
@@ -202,10 +193,9 @@ describe('Tooltip', () => {
   });
 
   test('tooltip defaults to top placement when no placement prop is provided', async () => {
-    const { container } = render(TooltipTestComponent, { tip: 'default tooltip' });
+    render(TooltipTestComponent, { tip: 'default tooltip' });
 
-    const slot = container.querySelector('.tooltip-slot');
-    assert(slot);
+    const slot = screen.getByTestId('tooltip-trigger');
     await fireEvent.mouseEnter(slot);
 
     await waitFor(() => {
@@ -218,10 +208,9 @@ describe('Tooltip', () => {
   });
 
   test('tooltip calls autoUpdate on mouse enter', async () => {
-    const { container } = render(TooltipTestComponent, { tip: 'auto update test' });
+    render(TooltipTestComponent, { tip: 'auto update test' });
 
-    const slot = container.querySelector('.tooltip-slot');
-    assert(slot);
+    const slot = screen.getByTestId('tooltip-trigger');
     await fireEvent.mouseEnter(slot);
 
     await waitFor(() => {
@@ -232,8 +221,7 @@ describe('Tooltip', () => {
   test('tooltip applies max-width styling', async () => {
     const { container } = render(TooltipTestComponent, { tip: 'long text tooltip' });
 
-    const slot = container.querySelector('.tooltip-slot');
-    assert(slot);
+    const slot = screen.getByTestId('tooltip-trigger');
     await fireEvent.mouseEnter(slot);
 
     await waitFor(() => {
@@ -243,10 +231,9 @@ describe('Tooltip', () => {
   });
 
   test('tooltip handles tipSnippet prop', async () => {
-    const { container } = render(TooltipTestWithSnippet);
+    render(TooltipTestWithSnippet);
 
-    const slot = container.querySelector('.tooltip-slot');
-    assert(slot);
+    const slot = screen.getByTestId('tooltip-trigger');
     await fireEvent.mouseEnter(slot);
 
     await waitFor(() => {
@@ -257,8 +244,7 @@ describe('Tooltip', () => {
   test('tooltip is initially hidden with opacity-0', async () => {
     const { container } = render(TooltipTestComponent, { tip: 'opacity test' });
 
-    const slot = container.querySelector('.tooltip-slot');
-    assert(slot);
+    const slot = screen.getByTestId('tooltip-trigger');
     await fireEvent.mouseEnter(slot);
 
     const tooltipContainer = container.querySelector('.tooltip-content');
@@ -266,10 +252,9 @@ describe('Tooltip', () => {
   });
 
   async function renderAndHoverTooltip(props: Record<string, unknown>): Promise<HTMLElement> {
-    const { container } = render(TooltipTestComponent, props);
+    render(TooltipTestComponent, props);
 
-    const slot = container.querySelector('.tooltip-slot');
-    assert(slot);
+    const slot = screen.getByTestId('tooltip-trigger');
     await fireEvent.mouseEnter(slot);
 
     await waitFor(() => {
@@ -298,10 +283,9 @@ describe('Tooltip', () => {
   });
 
   test('Expect class styling to apply to tip slot div', async () => {
-    const { container } = render(TooltipTestComponent, { classStyle: 'my-[5px] mx-[10px]' });
+    render(TooltipTestComponent, { classStyle: 'my-[5px] mx-[10px]' });
 
-    const slot = container.querySelector('.tooltip-slot');
-    assert(slot);
+    const slot = screen.getByTestId('tooltip-trigger');
     await fireEvent.mouseEnter(slot);
 
     await waitFor(() => {
