@@ -39,6 +39,7 @@ import {
   PODMAN_MACHINE_MEMORY_SUPPORTED_KEY,
   WSL_HYPERV_ENABLED_KEY,
 } from '/@/constants';
+import type { ConnectionJSON, MachineInfo, MachineJSON } from '/@/types';
 
 import * as extension from './extension';
 import {
@@ -108,7 +109,7 @@ const providerWithStoppedStatus = {
   status: 'stopped' as extensionApi.ProviderStatus,
 };
 
-const machineInfo: extension.MachineInfo = {
+const machineInfo: MachineInfo = {
   cpus: 1,
   diskSize: 1000000,
   memory: 10000000,
@@ -135,7 +136,7 @@ const machineDefaultName = 'podman-machine-default';
 const machine1Name = 'podman-machine-1';
 
 // Create fake of MachineJSON
-let fakeMachineJSON: extension.MachineJSON[];
+let fakeMachineJSON: MachineJSON[];
 let fakeMachineInfoJSON: unknown;
 
 const telemetryLogger: extensionApi.TelemetryLogger = {
@@ -833,7 +834,7 @@ test('test checkDefaultMachine, if the machine running is not default, the funct
 
 test('checkDefaultMachine: do not prompt if the running machine is already the default', async () => {
   // Create fake of MachineJSON
-  const fakeJSON: extension.MachineJSON[] = [
+  const fakeJSON: MachineJSON[] = [
     {
       Name: 'podman-machine-default',
       CPUs: 2,
@@ -862,7 +863,7 @@ test('checkDefaultMachine: do not prompt if the running machine is already the d
     },
   ];
 
-  const fakeConnectionJSON: extension.ConnectionJSON[] = [
+  const fakeConnectionJSON: ConnectionJSON[] = [
     {
       Name: machineDefaultName,
       URI: 'uri',
@@ -995,10 +996,10 @@ test('if a machine failed to start with a wsl distro not found error but the ski
 
 test('test checkDefaultMachine - if there is no machine marked as default, take the default system connection to retrieve it. Prompt as it is not running', async () => {
   // Create fake of MachineJSON
-  const fakeJSON: extension.MachineJSON[] = fakeMachineJSON;
+  const fakeJSON: MachineJSON[] = fakeMachineJSON;
   fakeJSON[1].Default = false;
 
-  const fakeConnectionJSON: extension.ConnectionJSON[] = [
+  const fakeConnectionJSON: ConnectionJSON[] = [
     {
       Name: machineDefaultName,
       URI: 'uri',
@@ -1045,10 +1046,10 @@ test('test checkDefaultMachine - if there is no machine marked as default, take 
 
 test('test checkDefaultMachine - if there is no machine marked as default, take the default system connection to retrieve it. Do not prompt as it is running', async () => {
   // Create fake of MachineJSON
-  const fakeJSON: extension.MachineJSON[] = fakeMachineJSON;
+  const fakeJSON: MachineJSON[] = fakeMachineJSON;
   fakeJSON[1].Default = false;
 
-  const fakeConnectionJSON: extension.ConnectionJSON[] = [
+  const fakeConnectionJSON: ConnectionJSON[] = [
     {
       Name: machineDefaultName,
       URI: 'uri',
@@ -1221,7 +1222,7 @@ test('test checkDefaultMachine - if user wants to change machine, check that it 
 });
 
 test('test checkDefaultMachine, if the default connection is not in sync with the default machine, the function will prompt', async () => {
-  const fakeConnectionJSON: extension.ConnectionJSON[] = [
+  const fakeConnectionJSON: ConnectionJSON[] = [
     {
       Name: machineDefaultName,
       URI: 'uri',
@@ -2978,7 +2979,7 @@ test('getJSONMachineList should only get machines from wsl if hyperv is not enab
       }
     });
   });
-  const fakeJSON: extension.MachineJSON[] = [
+  const fakeJSON: MachineJSON[] = [
     {
       Name: 'podman-machine-default',
       CPUs: 2,
@@ -3043,7 +3044,7 @@ test('getJSONMachineList should only get machines from hyperv if wsl is not enab
       }
     });
   });
-  const fakeJSON: extension.MachineJSON[] = [
+  const fakeJSON: MachineJSON[] = [
     {
       Name: 'podman-machine-default',
       CPUs: 2,
@@ -3109,7 +3110,7 @@ test('getJSONMachineList should get machines from hyperv and wsl if both are ena
       }
     });
   });
-  const fakeJSON: extension.MachineJSON[] = [
+  const fakeJSON: MachineJSON[] = [
     {
       Name: 'podman-machine-default',
       CPUs: 2,
