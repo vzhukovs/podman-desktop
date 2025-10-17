@@ -2,7 +2,16 @@
 .tooltip-content {
   max-width: 400px;
   word-wrap: break-word;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.tooltip-content :global(.flex) {
+  min-width: 0;
+}
+
+.tooltip-content :global(.flew-row) {
+  flex-wrap: wrap;
 }
 </style>
 
