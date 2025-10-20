@@ -39,18 +39,13 @@ spec:
 
 #### Procedure: Start port forwarding
 
-1. Create a Kubernetes pod:
-   1. Go to the **Pods** component page.
-   1. Click **Play Kubernetes YAML**.
-      ![play kubernetes yaml](img/play-kubernetes-yaml.png)
-   1. Select a Kubernetes YAML file, such as `pod.yaml` from your local machine.
-   1. Set the **Runtime** field to `Kubernetes cluster`.
-      ![set runtime field](img/play-a-yaml-file.png)
-   1. Click **Play** and then **Done**.
-   1. Go to **Kubernetes > Pods** to view the created Kubernetes pod.
-      ![view the newly created pod](img/new-kubernetes-pod.png)
-   1. Click the name of the pod and view the **Summary** tab.
-
+1. Go to the **Kubernetes > Pods** component page.
+1. Click **Apply YAML**.
+1. Select your Kubernetes YAML file, such as `pod.yaml` from your local machine. A confirmation notification opens.
+1. Click **OK**.
+1. View the created Kubernetes pod on the same page.
+   ![view the newly created pod](img/new-kubernetes-pod.png)
+1. Click the name of the pod and view the **Summary** tab.
 1. Click the **Forward...** button corresponding to the port you want to use for port forwarding.
    ![forward button](img/forward-button.png)
 1. Click the **Open** button to view the running application in a web browser.

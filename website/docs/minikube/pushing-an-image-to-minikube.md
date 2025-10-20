@@ -51,12 +51,8 @@ You can also create a pod that uses the loaded image:
          imagePullPolicy: Never
    ```
 
-1. Go to **Pods** from the left navigation pane.
-1. Click **Play Kubernetes YAML** and provide the following details:
-   - **Kubernetes YAML file**: select your `verify_my_image.yaml` file.
-   - Set **Runtime** to **Kubernetes cluster**.
-1. Click **Play**.
-   ![play a Kubernetes YAML](img/create-pod-from-kube-yaml.png)
-1. Click **Done**.
-1. Go to **Kubernetes > Pods**, and view the created pod `verify-my-image`. The pod **STATUS** is **RUNNING**.
-   ![play a Kubernetes YAML](img/verify-my-image-pod-running.png)
+1. Go to **Kubernetes > Pods** from the left navigation pane.
+1. Click **Apply YAML**, and select the `verify_my_image.yaml` file from your workstation. A confirmation notification opens.
+1. Click **OK**.
+   1.View the created pod `verify-my-image`. The pod **STATUS** is **RUNNING**.
+   ![verify-my-image pod running](img/verify-my-image-pod-running.png)

@@ -27,6 +27,25 @@ import * as extensionApi from '@podman-desktop/api';
 import { Mutex } from 'async-mutex';
 import { compareVersions } from 'compare-versions';
 
+import {
+  CLEANUP_REQUIRED_MACHINE_KEY,
+  CREATE_WSL_MACHINE_OPTION_SELECTED_KEY,
+  PODMAN_DOCKER_COMPAT_ENABLE_KEY,
+  PODMAN_MACHINE_CPU_SUPPORTED_KEY,
+  PODMAN_MACHINE_DISK_SUPPORTED_KEY,
+  PODMAN_MACHINE_EDIT_CPU,
+  PODMAN_MACHINE_EDIT_DISK_SIZE,
+  PODMAN_MACHINE_EDIT_MEMORY,
+  PODMAN_MACHINE_EDIT_ROOTFUL,
+  PODMAN_MACHINE_MEMORY_SUPPORTED_KEY,
+  PODMAN_PROVIDER_LIBKRUN_SUPPORTED_KEY,
+  ROOTFUL_MACHINE_INIT_SUPPORTED_KEY,
+  START_NOW_MACHINE_INIT_SUPPORTED_KEY,
+  USER_MODE_NETWORKING_SUPPORTED_KEY,
+  WSL_HYPERV_ENABLED_KEY,
+} from '/@/constants';
+import type { ConnectionJSON, MachineInfo, MachineJSON, MachineJSONListOutput, MachineListOutput } from '/@/types';
+
 import type { PodmanExtensionApi, PodmanRunOptions } from '../../api/src/podman-extension-api';
 import { SequenceCheck } from './checks/base-check';
 import { getDetectionChecks } from './checks/detection-checks';
@@ -108,54 +127,6 @@ let wslAndHypervEnabledContextValue = false;
 let wslEnabled = false;
 
 const extensionNotifications = new ExtensionNotifications();
-
-export type MachineJSON = {
-  Name: string;
-  CPUs: number;
-  Memory: string;
-  DiskSize: string;
-  Running: boolean;
-  Starting: boolean;
-  Default: boolean;
-  VMType: string;
-  UserModeNetworking?: boolean;
-  Port: number;
-  RemoteUsername: string;
-  IdentityPath: string;
-};
-
-export type ConnectionJSON = {
-  Name: string;
-  URI: string;
-  Identity: string;
-  IsMachine: boolean;
-  Default: boolean;
-};
-
-export type MachineInfo = {
-  name: string;
-  cpus: number;
-  memory: number;
-  diskSize: number;
-  userModeNetworking: boolean;
-  cpuUsage: number;
-  diskUsage: number;
-  memoryUsage: number;
-  vmType: string;
-  port: number;
-  remoteUsername: string;
-  identityPath: string;
-};
-
-export type MachineListOutput = {
-  stdout: string;
-  stderr: string;
-};
-
-export type MachineJSONListOutput = {
-  list: MachineJSON[];
-  error: string;
-};
 
 export function isIncompatibleMachineOutput(output: string | undefined): boolean {
   // apple HV v4 to v5 machine config error
@@ -1028,22 +999,6 @@ export async function registerUpdatesIfAny(
   }
 }
 
-export const ROOTFUL_MACHINE_INIT_SUPPORTED_KEY = 'podman.isRootfulMachineInitSupported';
-export const USER_MODE_NETWORKING_SUPPORTED_KEY = 'podman.isUserModeNetworkingSupported';
-export const START_NOW_MACHINE_INIT_SUPPORTED_KEY = 'podman.isStartNowAtMachineInitSupported';
-export const CLEANUP_REQUIRED_MACHINE_KEY = 'podman.needPodmanMachineCleanup';
-export const PODMAN_MACHINE_CPU_SUPPORTED_KEY = 'podman.podmanMachineCpuSupported';
-export const PODMAN_MACHINE_MEMORY_SUPPORTED_KEY = 'podman.podmanMachineMemorySupported';
-export const PODMAN_MACHINE_DISK_SUPPORTED_KEY = 'podman.podmanMachineDiskSupported';
-export const PODMAN_PROVIDER_LIBKRUN_SUPPORTED_KEY = 'podman.isLibkrunSupported';
-export const CREATE_WSL_MACHINE_OPTION_SELECTED_KEY = 'podman.isCreateWSLOptionSelected';
-export const WSL_HYPERV_ENABLED_KEY = 'podman.wslHypervEnabled';
-export const PODMAN_DOCKER_COMPAT_ENABLE_KEY = 'podman.podmanDockerCompatibilityEnabled';
-export const PODMAN_MACHINE_EDIT_CPU = 'podman.podmanMachineEditCPUSupported';
-export const PODMAN_MACHINE_EDIT_MEMORY = 'podman.podmanMachineEditMemorySupported';
-export const PODMAN_MACHINE_EDIT_DISK_SIZE = 'podman.podmanMachineEditDiskSizeSupported';
-export const PODMAN_MACHINE_EDIT_ROOTFUL = 'podman.podmanMachineEditRootfulSupported';
-
 export function initTelemetryLogger(): void {
   telemetryLogger = extensionApi.env.createTelemetryLogger();
 }
@@ -1279,6 +1234,19 @@ async function exec(args: string[], options?: PodmanRunOptions): Promise<extensi
   return execPodman(args, options?.connection?.connection.vmTypeDisplayName, options);
 }
 
+export async function initInversify(
+  extensionContext: extensionApi.ExtensionContext,
+  telemetryLogger: extensionApi.TelemetryLogger,
+): Promise<{ podmanInstall: PodmanInstall }> {
+  // create inversify binding for the extension
+  inversifyBinding = new InversifyBinding(extensionContext, telemetryLogger);
+  const inversifyContainer = await inversifyBinding.init();
+
+  const podmanInstall = inversifyContainer.get(PodmanInstall);
+
+  return { podmanInstall };
+}
+
 export async function activate(extensionContext: extensionApi.ExtensionContext): Promise<PodmanExtensionApi> {
   stopLoop = false;
 
@@ -1286,13 +1254,7 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
 
   initTelemetryLogger();
 
-  // create inversify binding for the extension
-  inversifyBinding = new InversifyBinding(extensionContext, telemetryLogger);
-  const inversifyContainer = await inversifyBinding.init();
-
-  // bind classes to the Inversify container
-  inversifyContainer.bind(PodmanInstall).toSelf().inSingletonScope();
-  const podmanInstall = inversifyContainer.get(PodmanInstall);
+  const { podmanInstall } = await initInversify(extensionContext, telemetryLogger);
 
   const installedPodman = await getPodmanInstallation();
   const version: string | undefined = installedPodman?.version;
@@ -1405,8 +1367,14 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
     // Create a modal dialog to ask the user if they want to enable or disable compatibility mode
     const command = extensionApi.commands.registerCommand('podman.socketCompatibilityMode', async () => {
       // Manually check to see if the socket is disguised (this will be called when pressing the status bar item)
-      const isDisguisedPodmanSocket = await isDisguisedPodman();
-
+      let isDisguisedPodmanSocket: boolean;
+      try {
+        isDisguisedPodmanSocket = await isDisguisedPodman();
+      } catch (error: unknown) {
+        console.debug('Error while check if the socket is disguised', error);
+        await extensionApi.window.showInformationMessage('Could not get if Podman is disguised');
+        return;
+      }
       // We use isEnabled() as we do not want to "renable" again if the user has already enabled it.
       if (!isDisguisedPodmanSocket && !socketCompatibilityMode.isEnabled()) {
         const result = await extensionApi.window.showInformationMessage(
