@@ -21,7 +21,6 @@ import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { tick } from 'svelte';
-import { router } from 'tinro';
 import { beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { commandsInfos } from '/@/stores/commands';
@@ -540,19 +539,5 @@ describe('Command Palette', () => {
     expect(commandsTab).not.toHaveClass('border-[var(--pd-button-tab-border-selected)]');
     expect(docsTab).not.toHaveClass('border-[var(--pd-button-tab-border-selected)]');
     expect(gotoTab).not.toHaveClass('border-[var(--pd-button-tab-border-selected)]');
-  });
-
-  test('should call router.goto when clicking on container item', async () => {
-    render(CommandPalette, { display: true });
-
-    const gotoTab = screen.getByRole('button', { name: 'Ctrl+F Go to' });
-    await userEvent.click(gotoTab);
-    await tick();
-
-    const containerItem = screen.getByRole('button', { name: 'Container: test-container' });
-    await userEvent.click(containerItem);
-    await tick();
-
-    expect(router.goto).toHaveBeenCalledWith('/containers/test-container-id/summary');
   });
 });

@@ -27,6 +27,7 @@ import EnterIcon from '../images/EnterIcon.svelte';
 import NotFoundIcon from '../images/NotFoundIcon.svelte';
 import { isPropertyValidInContext } from '../preferences/Util';
 import { createGoToItems, getGoToDisplayText } from './CommandPaletteUtils';
+import TextHighLight from './TextHighLight.svelte';
 
 const ENTER_KEY = 'Enter';
 const ESCAPE_KEY = 'Escape';
@@ -44,6 +45,8 @@ interface SearchOption {
   text: string;
   shortCut?: string[];
 }
+
+type CommandPaletteItem = CommandInfo | DocumentationInfo | GoToInfo;
 
 let { display = false, onclose }: Props = $props();
 
@@ -77,6 +80,7 @@ let podInfos: PodInfo[] = $derived($podsInfos);
 let volumInfos: VolumeInfo[] = $derived($volumeListInfos.map(info => info.Volumes).flat());
 let imageInfos: ImageInfo[] = $derived($imagesInfos);
 let navigationItems: NavigationRegistryEntry[] = $derived($navigationRegistry);
+
 let goToItems: GoToInfo[] = $derived(
   createGoToItems(imageInfos, containerInfos, podInfos, volumInfos, navigationItems),
 );
@@ -333,12 +337,25 @@ async function onAction(): Promise<void> {
     });
 }
 
-function isGoToItem(item: CommandInfo | DocumentationInfo | GoToInfo): item is GoToInfo {
+function isGoToItem(item: CommandPaletteItem): item is GoToInfo {
   return 'type' in item;
 }
 
-function isDocItem(item: CommandInfo | DocumentationInfo | GoToInfo): item is DocumentationInfo {
+function isDocItem(item: CommandPaletteItem): item is DocumentationInfo {
   return 'category' in item;
+}
+
+function getTextToHighlight(item: CommandPaletteItem): string {
+  if (isDocItem(item)) {
+    return `${item.category}: ${item.name}`;
+  } else if (isGoToItem(item)) {
+    if (item.type === 'Navigation') {
+      return `${item.name}`;
+    }
+    return `${item.type}: ${getGoToDisplayText(item)}`;
+  } else {
+    return item.title ?? '';
+  }
 }
 </script>
 
@@ -391,7 +408,6 @@ function isDocItem(item: CommandInfo | DocumentationInfo | GoToInfo): item is Do
         </div>
         <ul class="max-h-[50vh] overflow-y-auto flex flex-col mt-1">
           {#each filteredItems as item, i (i)}
-            {@const docItem = isDocItem(item)}
             {@const goToItem = isGoToItem(item)}
             <li class="flex w-full flex-row" bind:this={scrollElements[i]} aria-label={goToItem ? getGoToDisplayText(item) : (item.id)}>
               <button
@@ -402,17 +418,7 @@ function isDocItem(item: CommandInfo | DocumentationInfo | GoToInfo): item is Do
                 <div class="flex flex-col w-full">
                   <div class="flex flex-row w-full max-w-[700px] truncate">
                     <div class="text-base py-[2pt]">
-                      {#if docItem}
-                        {(item.category)}: {(item.name)}
-                       {:else if goToItem}
-                        {#if item.type === 'Navigation'}
-                          {item.name}
-                        {:else}
-                          {(item.type)}: {(getGoToDisplayText(item))}
-                        {/if}
-                      {:else}
-                        {(item.title)}
-                      {/if}
+                      <TextHighLight text={getTextToHighlight(item)} query={inputValue ?? ''} />
                     </div>
                   </div>
                 </div>
