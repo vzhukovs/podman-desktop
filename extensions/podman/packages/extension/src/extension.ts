@@ -2277,17 +2277,21 @@ async function initializeCertificateDetection(telemetryLogger: extensionApi.Tele
   });
 
   // Initial detection
-  await certificateDetectionService.detectCustomCertificates();
+  _doDetectCustomCertificates(certificateDetectionService);
 
   // Set up periodic detection (every 24 hours)
   certificateDetectionInterval = setInterval(
     () => {
       if (certificateDetectionService) {
-        certificateDetectionService.detectCustomCertificates().catch((error: unknown) => {
-          console.warn(`Can't detect custom registry certificates: ${error}`);
-        });
+        _doDetectCustomCertificates(certificateDetectionService);
       }
     },
     24 * 60 * 60 * 1000,
   );
+}
+
+function _doDetectCustomCertificates(certificateService: CertificateDetectionService): void {
+  certificateService.detectCustomCertificates().catch((error: unknown) => {
+    console.warn(`Can't detect custom registry certificates: ${error}`);
+  });
 }
