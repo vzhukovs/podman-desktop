@@ -1,5 +1,5 @@
 /**********************************************************************
- * Copyright (C) 2022-2025 Red Hat, Inc.
+ * Copyright (C) 2025 Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,26 +16,13 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
-import os from 'node:os';
+import { vi } from 'vitest';
 
-import type { CheckResult } from '@podman-desktop/api';
-import { injectable } from 'inversify';
-
-import { BaseCheck } from '../base-check';
-
-@injectable()
-export class WinMemoryCheck extends BaseCheck {
-  title = 'RAM';
-  private REQUIRED_MEM = 5 * 1024 * 1024 * 1024; // 5Gb
-
-  async execute(): Promise<CheckResult> {
-    const totalMem = os.totalmem();
-    if (this.REQUIRED_MEM <= totalMem) {
-      return this.createSuccessfulResult();
-    } else {
-      return this.createFailureResult({
-        description: 'You need at least 5GB to run Podman.',
-      });
-    }
-  }
-}
+export const computePosition = vi.fn((): Promise<{ x: number; y: number }> => Promise.resolve({ x: 100, y: 200 }));
+export const flip = vi.fn(() => ({}));
+export const shift = vi.fn(() => ({}));
+export const offset = vi.fn(() => ({}));
+export const autoUpdate = vi.fn((_ref: unknown, _tooltip: unknown, update: () => void): (() => void) => {
+  update();
+  return (): void => {};
+});
