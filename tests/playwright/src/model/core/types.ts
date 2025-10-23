@@ -41,6 +41,23 @@ export interface DeployPodOptions {
   useOpenShiftRoutes?: boolean;
 }
 
+export enum PodmanKubePlayOptions {
+  SelectYamlFile,
+  CreateYamlFileFromScratch,
+}
+
+export interface PlayFromScratch {
+  podmanKubePlayOption: PodmanKubePlayOptions.CreateYamlFileFromScratch;
+  jsonResourceDefinition: string;
+}
+
+export interface PlayFromYaml {
+  podmanKubePlayOption: PodmanKubePlayOptions.SelectYamlFile;
+  pathToYaml: string;
+}
+
+export type PlayYamlOptions = PlayFromScratch | PlayFromYaml;
+
 export enum KubernetesResources {
   Nodes = 'Nodes',
   Deployments = 'Deployments',

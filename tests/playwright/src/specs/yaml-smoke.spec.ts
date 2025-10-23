@@ -20,6 +20,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { ImageState } from '../model/core/states';
+import { PodmanKubePlayOptions } from '../model/core/types';
 import { expect as playExpect, test } from '../utility/fixtures';
 import { deleteImage, deletePod } from '../utility/operations';
 import { waitForPodmanMachineStartup } from '../utility/wait';
@@ -56,11 +57,14 @@ test.describe.serial(`Play yaml file to pull images and create pod for app ${pod
     let podsPage = await navigationBar.openPods();
     await playExpect(podsPage.heading).toBeVisible();
 
-    const playYamlPage = await podsPage.openPodmanKubePlay();
-    await playExpect(playYamlPage.heading).toBeVisible();
+    const podmanKubePlayPage = await podsPage.openPodmanKubePlay();
+    await playExpect(podmanKubePlayPage.heading).toBeVisible();
 
     const yamlFilePath = path.resolve(__dirname, '..', '..', 'resources', `${podAppName}.yaml`);
-    podsPage = await playYamlPage.playYaml(yamlFilePath);
+    podsPage = await podmanKubePlayPage.playYaml({
+      podmanKubePlayOption: PodmanKubePlayOptions.SelectYamlFile,
+      pathToYaml: yamlFilePath,
+    });
     await playExpect(podsPage.heading).toBeVisible();
   });
 
