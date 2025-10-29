@@ -8,49 +8,60 @@ keywords: [podman desktop, containers, podman, installing, installation, macOS]
 
 # MacOS
 
-This page contains information regarding installation of Podman Desktop on MacOS.
-
-You can install Podman Desktop on macOS:
-
-1. Using the .dmg file
-2. Using Homebrew
-
 :::info[Prerequisite]
-Podman Desktop requires [Podman Engine](https://docs.podman.io/en/latest/index.html). If you don't have Podman Engine installed, Podman Desktop will prompt you to do so at a later stage.
+Podman Desktop requires the [Podman engine](https://docs.podman.io/en/latest/index.html). If you do not have the Podman engine installed, Podman Desktop will prompt you to do so when you open it.
 :::
 
-## Installing Podman Desktop on macOS using .dmg file
+You can install Podman Desktop on macOS by using:
 
-1. Download the `.dmg` file from the [Downloads](/downloads/macos) section of this website.
+- The .dmg installer file: This is the recommended way to install Podman Desktop, Podman, and Podman CLI smoothly.
+- Homebrew: This is an alternative way, but it is not recommended, as there is no guarantee of the stability of Brew installs of Podman and Podman Desktop.
 
-   While we recommend getting the "universal" binary file which will work irrespective of the chip architecture your Mac possesses, you also have the option to get the applicable .dmg file depending on your Mac Hardware Architecture (that is Intel or Apple M1).
+  :::note
 
-1. Locate the downloaded file, and double-click on it. (Usually, you will find the downloaded file in the Downloads folder)
+  If you have already installed Podman using Homebrew, perform one of the following steps to avoid any unexpected results when using Podman Desktop:
+  - Uninstall Podman through Homebrew before using the recommended .dmg installer.
+  - Do not use the .dmg installer to install Podman Desktop. Instead, use Homebrew only.
 
-   ![img0](img/download-dmg.png)
+  :::
 
-1. Drag Podman Desktop icon to the Applications folder.
+## Installing Podman Desktop using the .dmg file: Recommended
 
-   ![img1](img/click-and-drag.png)
+1. Download the `.dmg` file from the [Downloads](/downloads/macos) section of the website.
 
-1. Start Podman Desktop from the 'Launchpad' or Mac's `Applications` directory.
+   :::note
 
-   ![img2](img/podman-desktop-app.png)
+   While we recommend getting the "universal" binary file, which will work irrespective of the chip architecture your Mac possesses, you also have the option to download the applicable .dmg file depending on your Mac hardware architecture (that is, Intel or Apple M1).
 
-1. Install Podman from Podman Desktop, if not yet installed.
+   :::
 
-   When you open Podman Desktop for the first time, click on the "View detection checks" button to scan if all the prerequisites to use Podman Desktop are met. If it says `❌ podman cli was not found in the PATH`, then you need to install the Podman CLI/Engine which can be done within the application.
+1. Locate the downloaded file, and double-click on it. Usually, you will find the downloaded file in the Downloads folder.
 
-   ![img3](img/pd-before-podman.png)
+1. Drag the Podman Desktop application and drop it to the `Applications` folder.
 
-1. Click on the "Install" button next to the "View detection checks" button, and follow the instructions on screen.
-1. You will be redirected to the Podman Installer. Follow the instructions on screen and enter your system password when asked.
+   ![drag and drop the Podman Desktop application](img/click-and-drag.png)
 
-   ![img4](img/system-pass.png)
+1. Start Podman Desktop from the 'Launchpad' or Mac's `Applications` directory. The Dashboard page opens with a notification to set up Podman.
 
-1. After the installation is complete, close the installation program. Podman Engine has been installed and you are now ready to use Podman Desktop.
+1. Click **Set up** to install Podman from Podman Desktop.
+   ![set up button](img/podman-set-up-button.png)
 
-## Installing Podman Desktop on macOS using Homebrew
+1. Click **Next**. A confirmation notification to install Podman opens.
+1. Click **Yes**. The Podman Installer screen opens.
+1. Follow the instructions on the screen, enter your system password when prompted, and click **Install Software**.
+
+   ![system password to install Podman](img/system-password.png)
+
+1. Click **Close** on the screen. A page notifying that Podman has been set up correctly opens.
+1. Click **Next**. A page notifying you to create a Podman machine opens.
+   ![podman installed correctly notification](img/podman-installed-successfully.png)
+1. Click **Next**, and then click **Create**.
+   ![notification to create a podman machine](img/notification-to-create-podman-machine.png)
+1. Click **Next** to navigate back to the Dashboard page.
+
+Podman Desktop installation is now complete. The Podman engine is installed, and the Podman machine is created. You are ready to use the application.
+
+## Installing Podman Desktop using Homebrew: Not recommended
 
 :::info[Prerequisite]
 
@@ -61,13 +72,13 @@ Podman Desktop requires [Podman Engine](https://docs.podman.io/en/latest/index.h
 ### Installation steps
 
 1. Open a terminal on your Mac.
-2. Run the command mentioned below.
+2. Run the following command:
 
    ```sh
    brew install --cask podman-desktop
    ```
 
-   Homebrew will also install the Podman Engine along with the Podman Desktop application, in case you don't have it installed yet.
+   Homebrew will also install the Podman engine along with the Podman Desktop application in case you do not have it installed.
 
    After the command is executed, you can find the Podman Desktop application in the `Applications` directory of macOS.
 
