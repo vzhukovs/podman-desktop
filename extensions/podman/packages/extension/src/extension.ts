@@ -1389,6 +1389,7 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
       try {
         isDisguisedPodmanSocket = await isDisguisedPodman();
       } catch (error: unknown) {
+        telemetryLogger.logError('checkIfSocketDisguisedFailed', { error });
         console.debug('Error while check if the socket is disguised', error);
         await extensionApi.window.showInformationMessage('Could not get if Podman is disguised');
         return;

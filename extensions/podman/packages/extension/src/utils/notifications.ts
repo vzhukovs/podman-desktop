@@ -132,6 +132,7 @@ export class ExtensionNotifications {
     try {
       isDisguisedPodmanSocket = await isDisguisedPodman();
     } catch (error: unknown) {
+      this.telemetryLogger.logError('checkIfSocketDisguisedFailed', { error });
       console.debug('Error while check if the socket is disguised', error);
       return;
     }
@@ -177,6 +178,7 @@ export class ExtensionNotifications {
     try {
       isDisguisedPodmanSocket = await isDisguisedPodman();
     } catch (error: unknown) {
+      this.telemetryLogger.logError('checkIfSocketDisguisedFailed', { error });
       console.debug('Error while check if the socket is disguised', error);
       return;
     }
