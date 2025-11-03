@@ -35,6 +35,12 @@ beforeAll(() => {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(window.getConfigurationValue).mockImplementation(async (key: string) => {
+    if (key === 'terminal.integrated.scrollback') {
+      return 1000;
+    }
+    return undefined;
+  });
   shellInContainerMock = vi.mocked(window.shellInContainer);
   vi.mocked(window.matchMedia).mockReturnValue({
     addListener: vi.fn(),
@@ -279,7 +285,7 @@ test('prompt is not duplicated after restoring terminal from containerTerminals 
   const terminals = get(containerTerminals);
   expect(terminals.length).toBe(0);
 
-  // destroy the the terminal tab
+  // destroy the terminal tab
   renderObject.unmount();
   shellInContainerMock.mockClear();
 

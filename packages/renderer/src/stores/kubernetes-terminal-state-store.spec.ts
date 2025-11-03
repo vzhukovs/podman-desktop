@@ -26,7 +26,12 @@ import { terminalStates } from '/@/stores/kubernetes-terminal-state-store';
 const kubernetesExecMock = vi.fn();
 
 beforeAll(() => {
-  Object.defineProperty(window, 'getConfigurationValue', { value: vi.fn() });
+  vi.mocked(window.getConfigurationValue).mockImplementation(async (key: string) => {
+    if (key === 'terminal.integrated.scrollback') {
+      return 1000;
+    }
+    return undefined;
+  });
   Object.defineProperty(window, 'kubernetesExec', { value: kubernetesExecMock });
   Object.defineProperty(window, 'kubernetesExecResize', { value: vi.fn() });
 

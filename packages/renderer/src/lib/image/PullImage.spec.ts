@@ -36,8 +36,8 @@ beforeAll(() => {
       func();
     },
   };
-  vi.mocked(window.resolveShortnameImage).mockResolvedValue(['docker.io/test1']);
 
+  vi.mocked(window.resolveShortnameImage).mockResolvedValue(['docker.io/test1']);
   Object.defineProperty(window, 'matchMedia', {
     value: () => {
       return {
@@ -74,7 +74,15 @@ const PROVIDER_INFO_MOCK: ProviderInfo = {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  vi.restoreAllMocks();
+  vi.mocked(window.getConfigurationValue).mockImplementation(async (key: string) => {
+    if (key === 'terminal.integrated.scrollback') {
+      return 1000;
+    }
+    return undefined;
+  });
+  vi.mocked(window.resolveShortnameImage).mockResolvedValue(['docker.io/test1']);
+  vi.mocked(window.pullImage).mockResolvedValue(undefined);
+  vi.mocked(window.listImageTagsInRegistry).mockResolvedValue(['latest', 'other']);
 
   providerInfos.set([PROVIDER_INFO_MOCK]);
 });
