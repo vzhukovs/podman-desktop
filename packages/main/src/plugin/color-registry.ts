@@ -17,6 +17,7 @@
  ***********************************************************************/
 
 import type * as extensionApi from '@podman-desktop/api';
+import { formatCss, parse } from 'culori';
 
 import type { AnalyzedExtension } from '/@/plugin/extension/extension-analyzer.js';
 import type { ColorDefinition, ColorInfo } from '/@api/color-info.js';
@@ -256,6 +257,7 @@ export class ColorRegistry {
     this.initTerminal();
     this.initProgressBar();
     this.initBadge();
+    this.initCommon();
   }
 
   protected initDefaults(): void {
@@ -1544,6 +1546,24 @@ export class ColorRegistry {
     this.registerColor(`${badge}gray`, {
       dark: colorPalette.gray[600],
       light: colorPalette.gray[600],
+    });
+  }
+
+  protected initCommon(): void {
+    const darkParsed = parse(colorPalette.stone[300]);
+    const lightParsed = parse(colorPalette.stone[600]);
+
+    if (!darkParsed || !lightParsed) {
+      throw new Error('Failed to parse stone palette colors');
+    }
+
+    darkParsed.alpha = 0.4;
+    lightParsed.alpha = 0.4;
+
+    this.registerColor(`item-disabled`, {
+      dark: formatCss(darkParsed),
+      light: formatCss(lightParsed),
+      // TODO: light HC + dark HC
     });
   }
 }

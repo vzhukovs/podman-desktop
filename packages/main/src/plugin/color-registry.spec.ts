@@ -72,6 +72,10 @@ class TestColorRegistry extends ColorRegistry {
   override initLabel(): void {
     super.initLabel();
   }
+
+  override initCommon(): void {
+    super.initCommon();
+  }
 }
 
 const _onDidChangeConfiguration = new Emitter<IConfigurationChangeEvent>();
@@ -666,5 +670,45 @@ describe('badge', () => {
       dark: colorPalette.dustypurple[600],
       light: colorPalette.dustypurple[600],
     });
+  });
+});
+
+describe('initCommon', () => {
+  let spyOnRegisterColor: MockInstance<(colorId: string, definition: ColorDefinition) => void>;
+
+  beforeEach(() => {
+    // mock the registerColor
+    spyOnRegisterColor = vi.spyOn(colorRegistry, 'registerColor');
+    spyOnRegisterColor.mockReturnValue(undefined);
+
+    colorRegistry.initCommon();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test('registers item-disabled color with correct alpha', () => {
+    expect(spyOnRegisterColor).toHaveBeenCalledTimes(1);
+
+    // check the call
+    const call = spyOnRegisterColor.mock.calls[0];
+    expect(call?.[0]).toBe('item-disabled');
+    expect(call?.[1]).toBeDefined();
+    expect(call?.[1].dark).toBeDefined();
+    expect(call?.[1].light).toBeDefined();
+
+    // verify both colors are strings (formatted CSS)
+    expect(typeof call?.[1].dark).toBe('string');
+    expect(typeof call?.[1].light).toBe('string');
+
+    // verify the colors contain alpha information (should be rgba or oklch with alpha)
+    // The colors should be formatted CSS strings with 0.4 alpha
+    const darkColor = call?.[1].dark as string;
+    const lightColor = call?.[1].light as string;
+
+    // Check that alpha is present (either rgba format or oklch with alpha)
+    expect(darkColor).toMatch(/rgba|oklch.*\/\s*0\.4|40%|alpha/i);
+    expect(lightColor).toMatch(/rgba|oklch.*\/\s*0\.4|40%|alpha/i);
   });
 });
