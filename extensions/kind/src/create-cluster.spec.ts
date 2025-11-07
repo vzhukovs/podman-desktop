@@ -18,13 +18,31 @@
 
 import * as fs from 'node:fs';
 
+import { KubeConfig } from '@kubernetes/client-node';
 import type { AuditRecord, TelemetryLogger } from '@podman-desktop/api';
 import * as extensionApi from '@podman-desktop/api';
 import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { connectionAuditor, createCluster, getKindClusterConfig } from './create-cluster';
+import { connectionAuditor, createCluster, getKindClusterConfig, waitForCoreDNSReady } from './create-cluster';
+import { KindClusterWatcher } from './kind-cluster-watcher';
 import { getKindPath, getMemTotalInfo } from './util';
+
+vi.mock('./kind-cluster-watcher', () => ({
+  KindClusterWatcher: vi.fn().mockImplementation(() => ({
+    waitForNodesReady: vi.fn().mockResolvedValue(undefined),
+    waitForSystemPodsReady: vi.fn().mockResolvedValue(undefined),
+    dispose: vi.fn(),
+  })),
+}));
+
+vi.mock('@kubernetes/client-node', () => ({
+  KubeConfig: vi.fn().mockImplementation(() => ({
+    loadFromFile: vi.fn(),
+    makeApiClient: vi.fn(),
+  })),
+  loadAllYaml: vi.fn().mockReturnValue([{ kind: 'Namespace', metadata: { name: 'test' } }]),
+}));
 
 vi.mock('node:fs', () => ({
   promises: {
@@ -681,4 +699,54 @@ test('check that auditItems does not return error when multiple VMs exist and on
   expect(errorRecords.length).toBe(0);
   // Should have called getMemTotalInfo with the running connection's socket
   expect(getMemTotalInfo).toHaveBeenCalledWith('socket2');
+});
+
+test('waitForCoreDNSReady should call watcher methods in correct order', async () => {
+  const mockWatcher = {
+    waitForNodesReady: vi.fn().mockResolvedValue(undefined),
+    waitForSystemPodsReady: vi.fn().mockResolvedValue(undefined),
+    dispose: vi.fn(),
+  };
+
+  vi.mocked(KindClusterWatcher).mockImplementation(() => mockWatcher as unknown as KindClusterWatcher);
+
+  const logger = {
+    log: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+  };
+  const mockKubeConfig = new KubeConfig();
+  await waitForCoreDNSReady(mockKubeConfig, logger);
+
+  // Verify all watcher methods were called
+  expect(mockWatcher.waitForNodesReady).toHaveBeenCalledWith();
+  expect(mockWatcher.waitForSystemPodsReady).toHaveBeenCalledWith('component=kube-scheduler');
+  expect(mockWatcher.waitForSystemPodsReady).toHaveBeenCalledWith('component=kube-controller-manager');
+  expect(mockWatcher.waitForSystemPodsReady).toHaveBeenCalledWith('k8s-app=kube-dns');
+
+  // Verify cleanup was called
+  expect(mockWatcher.dispose).toHaveBeenCalled();
+});
+
+test('waitForCoreDNSReady should handle errors and cleanup properly', async () => {
+  const mockError = new Error('Nodes not ready');
+  const mockWatcher = {
+    waitForNodesReady: vi.fn().mockRejectedValue(mockError),
+    waitForSystemPodsReady: vi.fn(),
+    dispose: vi.fn(),
+  };
+
+  vi.mocked(KindClusterWatcher).mockImplementation(() => mockWatcher as unknown as KindClusterWatcher);
+
+  const logger = {
+    log: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+  };
+  const mockKubeConfig = new KubeConfig();
+  await expect(waitForCoreDNSReady(mockKubeConfig, logger)).rejects.toThrow(
+    'Cluster not ready: Error: Nodes not ready',
+  );
+
+  expect(mockWatcher.dispose).toHaveBeenCalled();
 });
