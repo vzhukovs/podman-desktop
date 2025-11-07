@@ -50,6 +50,7 @@ describe('LockedConfiguration', () => {
 
     expect(result).toEqual(managedLocked);
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Loaded managed locked from:'));
+    expect(lockedConfiguration.getTelemetryInfo()).toStrictEqual({ event: 'managedConfigurationEnabledAndLocked' });
     consoleSpy.mockRestore();
   });
 
@@ -81,6 +82,10 @@ describe('LockedConfiguration', () => {
       expect.stringContaining('[Managed-by]: Failed to parse managed locked from'),
       expect.any(Error),
     );
+    expect(lockedConfiguration.getTelemetryInfo()).toStrictEqual({
+      event: 'lockedConfigurationStartupFailed',
+      eventProperties: expect.anything(),
+    });
     consoleErrorSpy.mockRestore();
   });
 });

@@ -50,6 +50,7 @@ describe('DefaultConfiguration', () => {
 
     expect(result).toEqual(managedDefaults);
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Loaded managed defaults from:'));
+    expect(defaultConfiguration.getTelemetryInfo()).toStrictEqual({ event: 'managedConfigurationEnabled' });
     consoleSpy.mockRestore();
   });
 
@@ -81,6 +82,10 @@ describe('DefaultConfiguration', () => {
       expect.stringContaining('Failed to parse managed defaults from'),
       expect.anything(),
     );
+    expect(defaultConfiguration.getTelemetryInfo()).toStrictEqual({
+      event: 'managedConfigurationStartupFailed',
+      eventProperties: expect.anything(),
+    });
     consoleErrorSpy.mockRestore();
   });
 

@@ -20,6 +20,8 @@ import type { TelemetrySender } from '@podman-desktop/api';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import type { DefaultConfiguration } from '/@/plugin/default-configuration.js';
+import type { LockedConfiguration } from '/@/plugin/locked-configuration.js';
 import type { ExtensionInfo } from '/@api/extension-info.js';
 
 import type { ConfigurationRegistry } from '../configuration-registry.js';
@@ -34,7 +36,18 @@ const onDidChangeConfigurationMock = vi.fn();
 const configurationRegistryMock = {
   getConfiguration: getConfigurationMock,
   onDidChangeConfiguration: onDidChangeConfigurationMock,
+  registerConfigurations: vi.fn(),
 } as unknown as ConfigurationRegistry;
+
+const defaultConfigurationMock = {
+  getContent: vi.fn(),
+  getTelemetryInfo: vi.fn(),
+} as unknown as DefaultConfiguration;
+
+const lockedConfigurationMock = {
+  getContent: vi.fn(),
+  getTelemetryInfo: vi.fn(),
+} as unknown as LockedConfiguration;
 
 vi.mock('../../../../../telemetry.json', () => ({
   default: {
@@ -51,7 +64,7 @@ vi.mock('../../../../../telemetry.json', () => ({
 
 class TelemetryTest extends Telemetry {
   constructor() {
-    super(configurationRegistryMock);
+    super(configurationRegistryMock, defaultConfigurationMock, lockedConfigurationMock);
   }
   public getLastTimeEvents(): Map<string, number> {
     return this.lastTimeEvents;
@@ -94,6 +107,9 @@ let telemetry: TelemetryTest;
 
 beforeEach(() => {
   telemetry = new TelemetryTest();
+  getConfigurationMock.mockReturnValue({
+    get: vi.fn(),
+  });
 });
 
 afterEach(() => {
@@ -170,6 +186,12 @@ test('Check propagate enablement event if configuration is updated', async () =>
 
   telemetry.listenForTelemetryUpdates();
   expect(hasBeenEnabled).toBeTruthy();
+});
+
+test('Enterprise configuration telemetry info is loaded upon init', async () => {
+  await telemetry.init();
+  expect(defaultConfigurationMock.getTelemetryInfo).toHaveBeenCalled();
+  expect(lockedConfigurationMock.getTelemetryInfo).toHaveBeenCalled();
 });
 
 describe('TelemetryLoggerImpl', () => {
