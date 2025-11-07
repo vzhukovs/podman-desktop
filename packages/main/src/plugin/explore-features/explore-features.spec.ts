@@ -24,6 +24,7 @@ import { beforeEach, expect, test, vi } from 'vitest';
 
 import type { Context } from '/@/plugin/context/context.js';
 import type { ContainerInfo } from '/@api/container-info.js';
+import type { ExploreFeature } from '/@api/explore-feature.js';
 import type { ExtensionInfo } from '/@api/extension-info.js';
 import type { ProviderInfo, ProviderKubernetesConnectionInfo } from '/@api/provider-info.js';
 
@@ -155,7 +156,14 @@ beforeEach(() => {
   vi.resetAllMocks();
 
   vi.mocked(configurationRegistryMock.getConfiguration).mockReturnValue({
-    get: vi.fn().mockReturnValueOnce([]).mockReturnValueOnce(false),
+    get: vi.fn().mockImplementation((key: string): unknown => {
+      if (key === 'hiddenFeatures') {
+        return [];
+      } else if (key === 'enabled') {
+        return false;
+      }
+      return undefined;
+    }),
   } as unknown as Configuration);
 
   vi.mocked(containerProviderRegistryMock.listContainers).mockResolvedValue([]);
@@ -188,6 +196,22 @@ test('init explore features in the configuration registry', async () => {
 });
 
 test('Get features list', async () => {
+  vi.mocked(containerProviderRegistryMock.listContainers).mockResolvedValue([]);
+
+  vi.mocked(providerRegistryMock.getProviderInfos).mockReturnValue([]);
+
+  vi.mocked(extensionLoaderMock.listExtensions).mockResolvedValue([]);
+
+  vi.mocked(configurationRegistryMock.getConfiguration).mockReturnValue({
+    get: vi.fn().mockImplementation((key: string): unknown => {
+      if (key === 'hiddenFeatures') {
+        return [];
+      } else if (key === 'enabled') {
+        return false;
+      }
+      return undefined;
+    }),
+  } as unknown as Configuration);
   await exploreFeaturesMock.init();
   const features = await exploreFeaturesMock.downloadFeaturesList();
 
@@ -214,7 +238,10 @@ test('Get features list', async () => {
   );
 });
 
-test('Context value are set when calling downloadFeaturesList', async () => {
+test.each([
+  (): Promise<ExploreFeature[]> => exploreFeaturesMock.downloadFeaturesList(),
+  (): Promise<void> => exploreFeaturesMock.init(),
+])('Context value are set when calling %s', async func => {
   vi.mocked(containerProviderRegistryMock.listContainers).mockResolvedValue([containerInfoMock]);
 
   vi.mocked(providerRegistryMock.getProviderInfos).mockReturnValue([
@@ -228,10 +255,17 @@ test('Context value are set when calling downloadFeaturesList', async () => {
   ]);
 
   vi.mocked(configurationRegistryMock.getConfiguration).mockReturnValue({
-    get: vi.fn().mockReturnValueOnce([]).mockReturnValueOnce(false),
+    get: vi.fn().mockImplementation((key: string): unknown => {
+      if (key === 'hiddenFeatures') {
+        return [];
+      } else if (key === 'enabled') {
+        return false;
+      }
+      return undefined;
+    }),
   } as unknown as Configuration);
 
-  await exploreFeaturesMock.downloadFeaturesList();
+  await func();
 
   expect(contextMock.setValue).toHaveBeenCalledWith('containerListLength', 1);
   expect(contextMock.setValue).toHaveBeenCalledWith('runningContainerConnections', 2);
