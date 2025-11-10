@@ -295,3 +295,17 @@ $ launchctl unload  ~/Library/LaunchAgents/io.podman_desktop.PodmanDesktop.plist
 ```shell-session
 $ launchctl load  ~/Library/LaunchAgents/io.podman_desktop.PodmanDesktop.plist
 ```
+
+## Unable to upgrade Podman Desktop to the latest version using Homebrew
+
+When you use Homebrew to upgrade to the latest version of Podman Desktop, you might get an error stating `It seems the App source '/Applications/Podman Desktop.app' is not there`. Because of this, you are unable to upgrade smoothly.
+
+#### Solution
+
+To resolve the error, use the `--greedy` flag with the `upgrade` command:
+
+```sh
+$ brew upgrade --greedy podman-desktop
+```
+
+The `--greedy` flag instructs Homebrew to check and upgrade casks marked with `:latest` versions. This ensures self-updating applications, such as Podman Desktop, are included in the upgrade process if a newer cask version exists.
