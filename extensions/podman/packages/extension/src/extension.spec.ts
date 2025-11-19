@@ -24,7 +24,7 @@ import { arch } from 'node:os';
 import type { ServiceIdentifier } from '@inversifyjs/common/lib/esm';
 import type { Configuration, ContainerEngineInfo, ContainerProviderConnection } from '@podman-desktop/api';
 import * as extensionApi from '@podman-desktop/api';
-import { Disposable, provider as apiProvider } from '@podman-desktop/api';
+import { Disposable } from '@podman-desktop/api';
 import type { Container as InversifyContainer } from 'inversify';
 import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -47,6 +47,7 @@ import { PodmanInfoHelper } from '/@/helpers/podman-info-helper';
 import { QemuHelper } from '/@/helpers/qemu-helper';
 import type { Installer } from '/@/installer/installer';
 import { WinPlatform } from '/@/platforms/win-platform';
+import { PodmanProvider } from '/@/providers/podman-provider';
 import type { ConnectionJSON, MachineInfo, MachineJSON } from '/@/types';
 import type { InstalledPodman } from '/@/utils/podman-binary';
 import { PodmanBinary } from '/@/utils/podman-binary';
@@ -108,17 +109,6 @@ const provider: extensionApi.Provider = {
   onDidUpdateDetectionChecks: vi.fn(),
 };
 
-// Use 'provider', but just replace status with 'ready'
-const providerWithReadyStatus = {
-  ...provider,
-  status: 'ready' as extensionApi.ProviderStatus,
-};
-
-const providerWithStoppedStatus = {
-  ...provider,
-  status: 'stopped' as extensionApi.ProviderStatus,
-};
-
 const machineInfo: MachineInfo = {
   cpus: 1,
   diskSize: 1000000,
@@ -141,6 +131,10 @@ const podmanConfiguration = {
   },
   updateMachineProviderSettings: updateMachineProviderSettingsMock,
 } as unknown as PodmanConfiguration;
+
+const PODMAN_PROVIDER_MOCK: PodmanProvider = {
+  provider: provider,
+} as unknown as PodmanProvider;
 
 const machineDefaultName = 'podman-machine-default';
 const machine1Name = 'podman-machine-1';
@@ -257,19 +251,24 @@ beforeEach(async () => {
 
   vi.mocked(PODMAN_BINARY_MOCK.getBinaryInfo).mockResolvedValue(undefined);
 
+  function getBind(identifier: ServiceIdentifier<unknown>): unknown {
+    switch (identifier) {
+      case PodmanInstall:
+        return PODMAN_INSTALL_MOCK;
+      case WinPlatform:
+        return WIN_PLATFORM_MOCK;
+      case PodmanBinary:
+        return PODMAN_BINARY_MOCK;
+      case PodmanProvider:
+        return PODMAN_PROVIDER_MOCK;
+    }
+    throw new Error(`Unknown identifier ${String(identifier)}`);
+  }
+
   // configure inversify
   vi.mocked(InversifyBinding.prototype.init).mockResolvedValue({
-    get: (identifier: ServiceIdentifier<unknown>) => {
-      switch (identifier) {
-        case PodmanInstall:
-          return PODMAN_INSTALL_MOCK;
-        case WinPlatform:
-          return WIN_PLATFORM_MOCK;
-        case PodmanBinary:
-          return PODMAN_BINARY_MOCK;
-      }
-      throw new Error(`Unknown identifier ${String(identifier)}`);
-    },
+    get: getBind,
+    getAsync: getBind,
   } as unknown as InversifyContainer);
   await extension.initInversify({ subscriptions: [] } as unknown as extensionApi.ExtensionContext, telemetryLogger);
 });
@@ -321,7 +320,6 @@ vi.mock(import('./utils/util'), async importOriginal => {
 beforeEach(() => {
   console.error = consoleErrorMock;
   vi.mocked(extensionApi.configuration.getConfiguration).mockReturnValue(config);
-  vi.mocked(extensionApi.provider.createProvider).mockReturnValue(provider);
   vi.mocked(extensionApi.env).isMac = false;
   vi.mocked(extensionApi.env).isLinux = false;
   vi.mocked(extensionApi.env).isWindows = false;
@@ -3314,12 +3312,6 @@ describe('macOS: tests for notifying if disguised podman socket fails / passes',
     });
 
     vi.mock('./utils/warnings');
-
-    // Change the mock return value to return a provider with a ready status for testing,
-    // this uses the original provider, but just replaces the ready status
-    vi.spyOn(apiProvider, 'createProvider').mockReturnValue(
-      providerWithReadyStatus as unknown as extensionApi.Provider,
-    );
   });
 
   test('do not show any notifications / messages if the provider is stopped', async () => {
@@ -3327,11 +3319,6 @@ describe('macOS: tests for notifying if disguised podman socket fails / passes',
     vi.mocked(extensionApi.env).isMac = true;
     vi.mocked(extensionApi.env).isWindows = false;
     vi.mocked(extensionApi.env).isLinux = false;
-
-    // Mock the provider to be "stopped"
-    vi.spyOn(apiProvider, 'createProvider').mockReturnValue(
-      providerWithStoppedStatus as unknown as extensionApi.Provider,
-    );
 
     const api = await extension.activate(contextMock);
     expect(api).toBeDefined();
@@ -3367,20 +3354,9 @@ describe('podman-mac-helper tests', () => {
         return '';
       },
     });
-
-    // Change the mock return value to return a provider with a ready status for testing,
-    // this uses the original provider, but just replaces the ready status
-    vi.spyOn(apiProvider, 'createProvider').mockReturnValue(
-      providerWithReadyStatus as unknown as extensionApi.Provider,
-    );
   });
 
   test('mock that the provider is "stopped" and make sure that the notification is NOT shown', async () => {
-    // Mock the provider to be "stopped"
-    vi.spyOn(apiProvider, 'createProvider').mockReturnValue(
-      providerWithStoppedStatus as unknown as extensionApi.Provider,
-    );
-
     // Activate
     const api = await extension.activate(contextMock);
     expect(api).toBeDefined();
