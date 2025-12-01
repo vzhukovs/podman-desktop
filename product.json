@@ -2,5 +2,8 @@
   "name": "Podman Desktop",
   "appId": "io.podman_desktop.PodmanDesktop",
   "artifactName": "podman-desktop",
-  "urlProtocol": "podman-desktop"
+  "urlProtocol": "podman-desktop",
+  "extensions": {
+    "remote": []
+  }
 }
