@@ -800,7 +800,7 @@ describe('Provider status change re-audit', () => {
 
   async function setupComponentWithProvider(
     testProviderInfo: ProviderInfo,
-    callback: Mock<any>,
+    callback: ReturnType<typeof mockCallback>,
     taskId?: number,
   ): Promise<void> {
     providerInfos.set([testProviderInfo]);
@@ -817,7 +817,7 @@ describe('Provider status change re-audit', () => {
     await vi.waitUntil(() => screen.queryByRole('textbox', { name: 'test.factoryProperty' }));
   }
 
-  async function setupAndTriggerProviderChange(callback: Mock<any>): Promise<{ auditSpy: any }> {
+  async function setupAndTriggerProviderChange(callback: ReturnType<typeof mockCallback>): Promise<{ auditSpy: any }> {
     const auditSpy = vi.spyOn(window as any, 'auditConnectionParameters').mockResolvedValue({ records: [] });
     const testProviderInfo = createTestProviderInfo('started');
     await setupComponentWithProvider(testProviderInfo, callback);
