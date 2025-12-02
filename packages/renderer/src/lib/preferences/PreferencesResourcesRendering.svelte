@@ -285,7 +285,7 @@ function getProviderCreationDisabledReason(provider: ProviderInfo): string | und
   if (provider.kubernetesProviderConnectionCreation && provider.status !== 'ready') {
     return provider.warnings?.[0]?.details ?? 'Provider not ready';
   }
-  return undefined;
+  return 'Provider unavailable';
 }
 
 async function performInstallation(provider: ProviderInfo): Promise<void> {
