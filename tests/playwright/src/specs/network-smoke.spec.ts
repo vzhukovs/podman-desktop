@@ -16,33 +16,34 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
-import { isLinux } from '/@/utility/platform';
-
-import { expect as playExpect, test } from '../utility/fixtures';
-import { deleteNetwork } from '../utility/operations';
-import { waitForPodmanMachineStartup } from '../utility/wait';
+import { expect as playExpect, test } from '/@/utility/fixtures';
+import { deleteNetwork, isPodmanCliVersionAtLeast } from '/@/utility/operations';
+import { waitForPodmanMachineStartup } from '/@/utility/wait';
 
 const defaultNetworkName = 'bridge';
 const testNetworkName = 'e2e-test-network';
 const testNetworkSubnet = '10.89.0.0/24';
 
-test.beforeAll(async ({ runner, welcomePage, page }) => {
-  runner.setVideoAndTraceName('network-smoke');
-  await welcomePage.handleWelcomePage(true);
-  await waitForPodmanMachineStartup(page);
-});
-
-test.afterAll(async ({ runner, page }) => {
-  try {
-    await deleteNetwork(page, testNetworkName);
-  } finally {
-    await runner.close();
-  }
-});
-
-test.skip(!!isLinux, 'Tests suite is currently not supported on Linux platform');
-
 test.describe.serial('Network smoke tests', { tag: ['@smoke'] }, () => {
+  test.skip(
+    !isPodmanCliVersionAtLeast('5.7.0'),
+    'Skipping network smoke tests since Podman CLI version is less than 5.7.0 or not available',
+  );
+
+  test.beforeAll(async ({ runner, welcomePage, page }) => {
+    runner.setVideoAndTraceName('network-smoke');
+    await welcomePage.handleWelcomePage(true);
+    await waitForPodmanMachineStartup(page);
+  });
+
+  test.afterAll(async ({ runner, page }) => {
+    try {
+      await deleteNetwork(page, testNetworkName);
+    } finally {
+      await runner.close();
+    }
+  });
+
   test('Check default network exists', async ({ navigationBar }) => {
     const networksPage = await navigationBar.openNetworks();
     await playExpect(networksPage.heading).toBeVisible();
