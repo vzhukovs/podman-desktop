@@ -13,7 +13,6 @@ import type { ContextUI } from '/@/lib/context/context';
 import { context } from '/@/stores/context';
 /* eslint-enable import/no-duplicates */
 import { operationConnectionsInfo } from '/@/stores/operation-connections';
-import { providerInfos } from '/@/stores/providers';
 import type { IConfigurationPropertyRecordedSchema } from '/@api/configuration/models.js';
 import type {
   ProviderContainerConnectionInfo,
@@ -113,9 +112,6 @@ $effect(() => {
 
 // Re-audit connection when provider status changes
 $effect(() => {
-  // Access the providerInfos store to track its changes
-  $providerInfos;
-
   // Skip the first call when initializing
   if (!providerInfosInitialized) {
     providerInfosInitialized = true;

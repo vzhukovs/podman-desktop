@@ -907,7 +907,7 @@ describe('Provider status change re-audit', () => {
     providerInfos.set([updatedProviderInfo]);
 
     await vi.waitFor(() => expect(auditSpy).toHaveBeenCalled());
-    expect(auditSpy).toHaveBeenCalledWith('test', { 'test.factoryProperty': 42 });
+    expect(auditSpy).toHaveBeenCalledWith('test', { 'test.factoryProperty': '42' });
   });
 
   test('Expect audit result to update button state when re-audit returns errors', async () => {
