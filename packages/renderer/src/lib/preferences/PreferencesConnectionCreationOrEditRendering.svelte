@@ -124,7 +124,10 @@ $effect(() => {
 
   // Only re-audit if initial load is complete, configuration is initialized, and we're not currently in progress
   if (initialLoadComplete && !inProgress && !operationStarted && configurationKeys.length > 0) {
-    reAuditConnection().catch(() => console.error('unable to re-audit connection'));
+    window
+      .auditConnectionParameters(providerInfo.internalId, buildAuditData())
+      .then(auditResult => updateAuditState(auditResult))
+      .catch(() => console.error('unable to re-audit connection'));
   }
 });
 
@@ -235,22 +238,6 @@ async function loadConnectionParams(): Promise<void> {
     });
   if (connectionInfo) {
     configurationKeys = configurationKeys.filter(property => !property.readonly);
-  }
-}
-
-/**
- * Re-audit connection parameters when provider status changes
- * This ensures warnings/errors are updated if a provider is stopped while on the creation page
- */
-async function reAuditConnection(): Promise<void> {
-  try {
-    const data = buildAuditData();
-    const auditResult = await window.auditConnectionParameters(providerInfo.internalId, data);
-    if (auditResult) {
-      updateAuditState(auditResult);
-    }
-  } catch (err: unknown) {
-    console.warn(err instanceof Error ? err.message : String(err));
   }
 }
 

@@ -116,6 +116,7 @@ function mockCallback(
 beforeEach(() => {
   operationConnectionsInfo.set(new Map());
   vi.resetAllMocks();
+  (window as any).auditConnectionParameters = vi.fn().mockResolvedValue({ records: [] });
 });
 
 describe.each([
@@ -360,23 +361,23 @@ describe.each([
   test(`Expect ${label} button to be disabled if itemsAudit returns errors or enabled otherwise`, async () => {
     const callback = vi.fn();
     vi.spyOn(window as any, 'auditConnectionParameters')
-      .mockImplementationOnce(() => ({ records: [] }))
-      .mockImplementationOnce(() => ({
+      .mockResolvedValueOnce({ records: [] })
+      .mockResolvedValueOnce({
         records: [
           {
             type: 'error',
             record: 'error message',
           },
         ],
-      }))
-      .mockImplementationOnce(() => ({
+      })
+      .mockResolvedValueOnce({
         records: [
           {
             type: 'info',
             record: 'info message',
           },
         ],
-      }));
+      });
     // eslint-disable-next-line @typescript-eslint/await-thenable
     render(PreferencesConnectionCreationOrEditRendering, {
       properties: [
