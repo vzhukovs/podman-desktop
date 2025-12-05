@@ -27,7 +27,14 @@ import { ImageRegistry } from '/@/plugin/image-registry.js';
 import product from '/@product.json' with { type: 'json' };
 
 import type { RemoteExtension } from './download-remote-extensions.js';
-import { downloadExtension, getRemoteExtensions, main } from './download-remote-extensions.js';
+import {
+  downloadExtension,
+  getRemoteExtensionFromProductJSON,
+  main,
+  NAME_ARG,
+  OCI_ARG,
+  parseArgs,
+} from './download-remote-extensions.js';
 
 vi.mock(import('node:fs/promises'));
 vi.mock(import('node:fs'));
@@ -126,25 +133,144 @@ describe('downloadExtension', () => {
   });
 });
 
-describe('getRemoteExtensions', () => {
+describe('parseArgs', () => {
+  test.each<{
+    name: string;
+    args: unknown[];
+    error: string;
+  }>([
+    {
+      name: 'missing --output should throw an error',
+      args: [],
+      error: 'missing output argument',
+    },
+    {
+      name: 'non absolute --output should throw an error',
+      args: ['--output', './foo'],
+      error: 'the output should be an absolute directory',
+    },
+    // missing one arg
+    {
+      name: `having --${NAME_ARG} without --${OCI_ARG} should throw an error`,
+      args: ['--output', ABS_DEST_DIR, `--${NAME_ARG}`, 'foo'],
+      error: `when specifying --${OCI_ARG} or --${NAME_ARG}, both should be provided as valid string`,
+    },
+    {
+      name: `having --${OCI_ARG} without --${NAME_ARG} should throw an error`,
+      args: ['--output', ABS_DEST_DIR, `--${OCI_ARG}`, 'ghcr.io/org/my-user:latest'],
+      error: `when specifying --${OCI_ARG} or --${NAME_ARG}, both should be provided as valid string`,
+    },
+    // zero length args
+    {
+      name: `zero length --${NAME_ARG} should throw an error`,
+      args: ['--output', ABS_DEST_DIR, `--${NAME_ARG}`, '', `--${OCI_ARG}`, 'ghcr.io/org/foo:latest'],
+      error: `when specifying --${OCI_ARG} or --${NAME_ARG}, both should be provided as valid string`,
+    },
+    {
+      name: `zero length --${OCI_ARG} should throw an error`,
+      args: ['--output', ABS_DEST_DIR, `--${OCI_ARG}`, '', `--${NAME_ARG}`, 'foo'],
+      error: `when specifying --${OCI_ARG} or --${NAME_ARG}, both should be provided as valid string`,
+    },
+    // too many args
+    {
+      name: `multiple --${OCI_ARG} should throw an error`,
+      args: [
+        '--output',
+        ABS_DEST_DIR,
+        `--${OCI_ARG}`,
+        'ghcr.io/org/foo:latest',
+        `--${OCI_ARG}`,
+        'ghcr.io/org/bar:latest',
+        `--${NAME_ARG}`,
+        'foo',
+      ],
+      error: `when specifying --${OCI_ARG} and --${NAME_ARG}, only one is allowed`,
+    },
+    {
+      name: `multiple --${NAME_ARG} should throw an error`,
+      args: [
+        '--output',
+        ABS_DEST_DIR,
+        `--${OCI_ARG}`,
+        'ghcr.io/org/foo:latest',
+        `--${NAME_ARG}`,
+        'foo',
+        `--${NAME_ARG}`,
+        'bar',
+      ],
+      error: `when specifying --${OCI_ARG} and --${NAME_ARG}, only one is allowed`,
+    },
+    // wrong type args
+    {
+      name: `boolean --${NAME_ARG} should throw an error`,
+      args: ['--output', ABS_DEST_DIR, `--${NAME_ARG}`, true, `--${OCI_ARG}`, 'ghcr.io/org/foo:latest'],
+      error: `when specifying --${OCI_ARG} and --${NAME_ARG}, should be valid strings`,
+    },
+    {
+      name: `boolean --${OCI_ARG} should throw an error`,
+      args: ['--output', ABS_DEST_DIR, `--${NAME_ARG}`, 'foo', `--${OCI_ARG}`, true],
+      error: `when specifying --${OCI_ARG} and --${NAME_ARG}, should be valid strings`,
+    },
+  ])('$name', ({ args, error }) => {
+    expect(() => {
+      parseArgs(args as string[]);
+    }).toThrowError(error);
+  });
+
+  test(`should handle no --${NAME_ARG} & --${OCI_ARG} args`, () => {
+    expect(parseArgs(['--output', ABS_DEST_DIR])).toStrictEqual({
+      output: ABS_DEST_DIR,
+    });
+  });
+
+  test('should handle single string value for --oci arg', () => {
+    expect(
+      parseArgs([
+        // output arg
+        '--output',
+        ABS_DEST_DIR,
+        // oci arg
+        `--${OCI_ARG}`,
+        'ghcr.io/org/my-user:latest',
+        // name arg
+        `--${NAME_ARG}`,
+        'my-user',
+      ]),
+    ).toStrictEqual({
+      output: ABS_DEST_DIR,
+      extension: {
+        oci: 'ghcr.io/org/my-user:latest',
+        name: 'my-user',
+      },
+    });
+  });
+});
+
+describe('getRemoteExtensionFromProductJSON', () => {
   test('expect to read product.json#extensions#remote', () => {
     (vi.mocked(product).extensions.remote as RemoteExtension[]) = [REMOTE_INFO_MOCK];
 
-    expect(getRemoteExtensions()).toStrictEqual([REMOTE_INFO_MOCK]);
+    expect(getRemoteExtensionFromProductJSON()).toStrictEqual([REMOTE_INFO_MOCK]);
   });
 });
 
 describe('main', () => {
-  test('missing --output should throw an error', async () => {
-    await expect(async () => {
-      await main([]);
-    }).rejects.toThrowError('missing output argument');
-  });
+  test(`cli args should be preferred to product.json`, async () => {
+    (vi.mocked(product).extensions.remote as RemoteExtension[]) = [REMOTE_INFO_MOCK];
 
-  test('non absolute --output should throw an error', async () => {
-    await expect(async () => {
-      await main(['--output', './foo']);
-    }).rejects.toThrowError('the output should be an absolute directory');
+    await main([
+      '--output',
+      ABS_DEST_DIR,
+      `--${OCI_ARG}`,
+      'localhost/dummy-extension:latest',
+      `--${NAME_ARG}`,
+      'dummy-extension',
+    ]);
+
+    expect(rename).toHaveBeenCalledExactlyOnceWith(
+      join(TMP_DIR, 'dummy-extension', 'extension'),
+      join(ABS_DEST_DIR, 'dummy-extension'),
+    );
   });
 
   test('empty remoteExtensions in product.json should not call any ImageRegistry#downloadAndExtractImage', async () => {
