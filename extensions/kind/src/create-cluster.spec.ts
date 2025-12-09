@@ -513,7 +513,7 @@ describe('provider not installed checks', () => {
       expectedMessage: 'No podman provider found. Please install and configure podman to create a Kind cluster.',
     },
   ])('returns error when provider is not installed ($name)', async ({ connections, isLinux, expectedMessage }) => {
-    vi.spyOn(extensionApi.provider, 'getContainerConnections').mockReturnValue(connections);
+    vi.mocked(extensionApi.provider.getContainerConnections).mockReturnValue(connections);
     vi.mocked(extensionApi.env).isLinux = isLinux;
 
     const checks = await connectionAuditor('podman', {
@@ -525,8 +525,6 @@ describe('provider not installed checks', () => {
     expect(checks.records).toHaveLength(1);
     expect(checks.records[0].type).toBe('error');
     expect(checks.records[0].record).toBe(expectedMessage);
-
-    vi.mocked(extensionApi.env).isLinux = false;
   });
 });
 
