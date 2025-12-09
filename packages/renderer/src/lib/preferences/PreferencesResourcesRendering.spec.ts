@@ -918,31 +918,19 @@ describe('Kubernetes provider creation disabled state', () => {
   });
 
   test('Expect container provider buttons to not be affected by disabled logic', async () => {
-    const containerProvider: ProviderInfo = {
+    const containerProvider = {
       id: 'podman',
       name: 'podman',
-      extensionId: 'podman-ext',
       images: {
         icon: 'img',
       },
       status: 'configured',
-      warnings: [],
       containerProviderConnectionCreation: true,
       containerProviderConnectionCreationDisplayName: 'Podman Machine',
-      detectionChecks: [],
       containerConnections: [],
       kubernetesConnections: [],
-      kubernetesProviderConnectionCreation: false,
       vmConnections: [],
-      vmProviderConnectionCreation: false,
-      vmProviderConnectionInitialization: false,
-      links: [],
-      containerProviderConnectionInitialization: false,
-      kubernetesProviderConnectionInitialization: false,
-      cleanupSupport: false,
-      installationSupport: false,
-      internalId: '1',
-    };
+    } as unknown as ProviderInfo;
 
     providerInfos.set([containerProvider]);
     render(PreferencesResourcesRendering, {});
@@ -953,31 +941,19 @@ describe('Kubernetes provider creation disabled state', () => {
   });
 
   test('Expect VM provider buttons to not be affected by disabled logic', async () => {
-    const vmProvider: ProviderInfo = {
+    const vmProvider = {
       id: 'lima',
       name: 'lima',
-      extensionId: 'lima-ext',
       images: {
         icon: 'img',
       },
       status: 'configured',
-      warnings: [],
-      containerProviderConnectionCreation: false,
-      detectionChecks: [],
-      containerConnections: [],
-      kubernetesConnections: [],
-      kubernetesProviderConnectionCreation: false,
-      vmConnections: [],
       vmProviderConnectionCreation: true,
       vmProviderConnectionCreationDisplayName: 'Lima VM',
-      vmProviderConnectionInitialization: false,
-      links: [],
-      containerProviderConnectionInitialization: false,
-      kubernetesProviderConnectionInitialization: false,
-      cleanupSupport: false,
-      installationSupport: false,
-      internalId: '1',
-    };
+      containerConnections: [],
+      kubernetesConnections: [],
+      vmConnections: [],
+    } as unknown as ProviderInfo;
 
     providerInfos.set([vmProvider]);
     render(PreferencesResourcesRendering, {});
