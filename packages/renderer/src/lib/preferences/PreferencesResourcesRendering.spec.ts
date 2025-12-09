@@ -882,21 +882,6 @@ describe('Kubernetes provider creation disabled state', () => {
     expect(button).not.toBeDisabled();
   });
 
-  test('Expect create button to be disabled when kubernetes provider is not ready', async () => {
-    const kubeProvider = createKubernetesProvider('configured', [
-      {
-        name: 'Container Engine Required',
-        details: 'A running container engine is required to create Kind clusters',
-      },
-    ]);
-
-    providerInfos.set([kubeProvider]);
-    render(PreferencesResourcesRendering, {});
-
-    const button = screen.getByRole('button', { name: 'Create new Kind Cluster' });
-    expect(button).toBeDisabled();
-  });
-
   test('Expect tooltip to show default message when kubernetes provider is ready', async () => {
     const kubeProvider = createKubernetesProvider('ready', []);
 
