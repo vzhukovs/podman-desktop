@@ -882,7 +882,7 @@ describe('Kubernetes provider creation disabled state', () => {
     expect(button).not.toBeDisabled();
   });
 
-  test('Expect button to be wrapped in Tooltip when kubernetes provider is not ready', async () => {
+  test('Expect create button to be disabled when kubernetes provider is not ready', async () => {
     const kubeProvider = createKubernetesProvider('configured', [
       {
         name: 'Container Engine Required',
