@@ -1,7 +1,7 @@
 <script lang="ts">
-import { faCircleInfo, faGear, faTerminal } from '@fortawesome/free-solid-svg-icons';
+import { faCircleInfo, faTerminal } from '@fortawesome/free-solid-svg-icons';
 import type { ContainerProviderConnection } from '@podman-desktop/api';
-import { Button, DropdownMenu, EmptyScreen, Tooltip } from '@podman-desktop/ui-svelte';
+import { DropdownMenu, EmptyScreen, Tooltip } from '@podman-desktop/ui-svelte';
 import { Buffer } from 'buffer';
 import { filesize } from 'filesize';
 import { onDestroy, onMount } from 'svelte';
@@ -25,7 +25,6 @@ import { providerInfos } from '../../stores/providers';
 import ContributionActions from '../actions/ContributionActions.svelte';
 import type { ContextUI } from '../context/context';
 import { ContextKeyExpr } from '../context/contextKey';
-import ProviderUpdateButton from '../dashboard/ProviderUpdateButton.svelte';
 import { normalizeOnboardingWhenClause } from '../onboarding/onboarding-utils';
 import ConnectionErrorInfoButton from '../ui/ConnectionErrorInfoButton.svelte';
 import ConnectionStatus from '../ui/ConnectionStatus.svelte';
@@ -37,6 +36,7 @@ import PreferencesConnectionActions from './PreferencesConnectionActions.svelte'
 import PreferencesConnectionsEmptyRendering from './PreferencesConnectionsEmptyRendering.svelte';
 import PreferencesProviderInstallationModal from './PreferencesProviderInstallationModal.svelte';
 import PreferencesResourcesRenderingCopyButton from './PreferencesResourcesRenderingCopyButton.svelte';
+import ProviderActionButtons from './ProviderActionButtons.svelte';
 import SettingsPage from './SettingsPage.svelte';
 import {
   getProviderConnectionName,
@@ -339,6 +339,11 @@ function hasAnyConfiguration(provider: ProviderInfo): boolean {
   );
 }
 
+function handleUpdatePreflightChecks(checks: CheckStatus[]): CheckStatus[] {
+  preflightChecks = checks;
+  return checks;
+}
+
 interface Props {
   properties?: IConfigurationPropertyRecordedSchema[];
   focus: string | undefined;
@@ -461,64 +466,14 @@ $effect(() => {
               <span class="my-auto font-semibold text-[var(--pd-invert-content-card-header-text)] ml-3 break-words"
                 >{provider.name}</span>
             </div>
-            <div class="text-center mt-10">
-              <!-- Some providers have a status of 'unknown' so that they do not appear in the dashboard, this allows onboarding to still show. -->
-              {#if globalContext && isOnboardingEnabled(provider, globalContext) && (provider.status === 'not-installed' || provider.status === 'unknown')}
-                <Button
-                  aria-label="Setup {provider.name}"
-                  title="Setup {provider.name}"
-                  onclick={(): void => router.goto(`/preferences/onboarding/${provider.extensionId}`)}>
-                  Setup ...
-                </Button>
-              {:else}
-                <div class="flex flex-row justify-around flex-wrap gap-2">
-                  {#if provider.containerProviderConnectionCreation || provider.kubernetesProviderConnectionCreation || provider.vmProviderConnectionCreation}
-                    {@const providerDisplayName =
-                      (provider.containerProviderConnectionCreation
-                        ? (provider.containerProviderConnectionCreationDisplayName ?? undefined)
-                        : provider.kubernetesProviderConnectionCreation
-                          ? provider.kubernetesProviderConnectionCreationDisplayName
-                          : provider.vmProviderConnectionCreation
-                            ? provider.vmProviderConnectionCreationDisplayName
-                            : undefined) ?? provider.name}
-                    {@const buttonTitle =
-                      (provider.containerProviderConnectionCreation
-                        ? (provider.containerProviderConnectionCreationButtonTitle ?? undefined)
-                        : provider.kubernetesProviderConnectionCreation
-                          ? provider.kubernetesProviderConnectionCreationButtonTitle
-                          : provider.vmProviderConnectionCreation
-                            ? provider.vmProviderConnectionCreationButtonTitle
-                            : undefined) ?? 'Create new'}
-                    <!-- create new provider button -->
-                    <Tooltip bottom tip="Create new {providerDisplayName}">
-                      <Button
-                        aria-label="Create new {providerDisplayName}"
-                        inProgress={providerInstallationInProgress.get(provider.name)}
-                        onclick={(): Promise<void> => doCreateNew(provider, providerDisplayName)}>
-                        {buttonTitle} ...
-                      </Button>
-                    </Tooltip>
-                  {/if}
-                  {#if globalContext && (isOnboardingEnabled(provider, globalContext) || hasAnyConfiguration(provider))}
-                    <Button
-                      aria-label="Setup {provider.name}"
-                      title="Setup {provider.name}"
-                      onclick={(): void => {
-                        if (globalContext && isOnboardingEnabled(provider, globalContext)) {
-                          router.goto(`/preferences/onboarding/${provider.extensionId}`);
-                        } else {
-                          router.goto(`/preferences/default/preferences.${provider.extensionId}`);
-                        }
-                      }}>
-                      <Fa size="0.9x" icon={faGear} />
-                    </Button>
-                  {/if}
-                  {#if provider.updateInfo?.version && provider.version !== provider.updateInfo?.version}
-                    <ProviderUpdateButton onPreflightChecks={(checks): CheckStatus[] => (preflightChecks = checks)} provider={provider} />
-                  {/if}
-                </div>
-              {/if}
-            </div>
+            <ProviderActionButtons
+              provider={provider}
+              globalContext={globalContext}
+              providerInstallationInProgress={providerInstallationInProgress.get(provider.name) ?? false}
+              onCreateNew={doCreateNew}
+              onUpdatePreflightChecks={handleUpdatePreflightChecks}
+              isOnboardingEnabled={isOnboardingEnabled}
+              hasAnyConfiguration={hasAnyConfiguration} />
           </div>
         </div>
         <!-- providers columns -->
