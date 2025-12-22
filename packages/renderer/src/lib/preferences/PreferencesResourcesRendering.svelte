@@ -339,14 +339,6 @@ function hasAnyConfiguration(provider: ProviderInfo): boolean {
   );
 }
 
-function handleSetup(provider: ProviderInfo): void {
-  if (globalContext && isOnboardingEnabled(provider, globalContext)) {
-    router.goto(`/preferences/onboarding/${provider.extensionId}`);
-  } else {
-    router.goto(`/preferences/default/preferences.${provider.extensionId}`);
-  }
-}
-
 function handleUpdatePreflightChecks(checks: CheckStatus[]): CheckStatus[] {
   preflightChecks = checks;
   return checks;
@@ -479,7 +471,6 @@ $effect(() => {
               globalContext={globalContext}
               providerInstallationInProgress={providerInstallationInProgress.get(provider.name) ?? false}
               onCreateNew={doCreateNew}
-              onSetup={handleSetup}
               onUpdatePreflightChecks={handleUpdatePreflightChecks}
               isOnboardingEnabled={isOnboardingEnabled}
               hasAnyConfiguration={hasAnyConfiguration} />

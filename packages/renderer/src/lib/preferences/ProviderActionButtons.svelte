@@ -2,6 +2,7 @@
 import { faGear } from '@fortawesome/free-solid-svg-icons';
 import { Button, Tooltip } from '@podman-desktop/ui-svelte';
 import Fa from 'svelte-fa';
+import { router } from 'tinro';
 
 import type { ContextUI } from '/@/lib/context/context';
 import ProviderUpdateButton from '/@/lib/dashboard/ProviderUpdateButton.svelte';
@@ -12,7 +13,6 @@ interface Props {
   globalContext: ContextUI | undefined;
   providerInstallationInProgress: boolean;
   onCreateNew: (provider: ProviderInfo, displayName: string) => Promise<void>;
-  onSetup: (provider: ProviderInfo) => void;
   onUpdatePreflightChecks: (checks: CheckStatus[]) => void;
   isOnboardingEnabled: (provider: ProviderInfo, context: ContextUI) => boolean;
   hasAnyConfiguration: (provider: ProviderInfo) => boolean;
@@ -24,17 +24,16 @@ let {
   globalContext,
   providerInstallationInProgress,
   onCreateNew,
-  onSetup,
   onUpdatePreflightChecks,
   isOnboardingEnabled,
   hasAnyConfiguration,
   class: className = '',
 }: Props = $props();
 
+const isOnboarding = $derived(globalContext && isOnboardingEnabled(provider, globalContext));
+
 const showOnboardingSetup = $derived(
-  globalContext &&
-    isOnboardingEnabled(provider, globalContext) &&
-    (provider.status === 'not-installed' || provider.status === 'unknown'),
+  isOnboarding && (provider.status === 'not-installed' || provider.status === 'unknown'),
 );
 
 const providerDisplayName = $derived(
@@ -63,9 +62,7 @@ const showCreateNewButton = $derived(
     provider.vmProviderConnectionCreation,
 );
 
-const showSetupButton = $derived(
-  globalContext && (isOnboardingEnabled(provider, globalContext) || hasAnyConfiguration(provider)),
-);
+const showSetupButton = $derived(globalContext && (isOnboarding ?? hasAnyConfiguration(provider)));
 
 const showUpdateButton = $derived(provider.updateInfo?.version && provider.version !== provider.updateInfo?.version);
 
@@ -74,7 +71,11 @@ function handleCreateNew(): Promise<void> {
 }
 
 function handleSetup(): void {
-  onSetup(provider);
+  if (isOnboarding) {
+    router.goto(`/preferences/onboarding/${provider.extensionId}`);
+  } else {
+    router.goto(`/preferences/default/preferences.${provider.extensionId}`);
+  }
 }
 </script>
 
