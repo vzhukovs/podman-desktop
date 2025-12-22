@@ -152,7 +152,7 @@ import { CommandRegistry } from './command-registry.js';
 import { CommandsInit } from './commands-init.js';
 import { ConfigurationRegistry } from './configuration-registry.js';
 import { ConfirmationInit } from './confirmation-init.js';
-import { ContainerProviderRegistry } from './container-registry.js';
+import { ContainerProviderRegistry, LatestImageError } from './container-registry.js';
 import { Context } from './context/context.js';
 import { ContributionManager } from './contribution-manager.js';
 import { CustomPickRegistry } from './custompick/custompick-registry.js';
@@ -183,6 +183,7 @@ import { Featured } from './featured/featured.js';
 import type { FeaturedExtension } from './featured/featured-api.js';
 import { FeedbackHandler } from './feedback-handler.js';
 import { FilesystemMonitoring } from './filesystem-monitoring.js';
+import { HelpMenu } from './help-menu/help-menu.js';
 import { IconRegistry } from './icon-registry.js';
 import { ImageCheckerImpl } from './image-checker.js';
 import { ImageFilesRegistry } from './image-files-registry.js';
@@ -201,6 +202,7 @@ import { OpenDevToolsInit } from './open-devtools-init.js';
 import { ProviderRegistry } from './provider-registry.js';
 import { Proxy } from './proxy.js';
 import { RecommendationsRegistry } from './recommendations/recommendations-registry.js';
+import { RegistryInit } from './registry-init.js';
 import { ReleaseNotesBannerInit } from './release-notes-banner-init.js';
 import { SafeStorageRegistry } from './safe-storage/safe-storage-registry.js';
 import { PinRegistry } from './statusbar/pin-registry.js';
@@ -567,6 +569,10 @@ export class PluginSystem {
     const statusbarProviders = container.get<StatusbarProvidersInit>(StatusbarProvidersInit);
     statusbarProviders.init();
 
+    container.bind<HelpMenu>(HelpMenu).toSelf().inSingletonScope();
+    const helpMenu = container.get<HelpMenu>(HelpMenu);
+    helpMenu.init();
+
     container.bind<MessageBox>(MessageBox).toSelf().inSingletonScope();
 
     // Don't show the tray icon options on Mac
@@ -687,6 +693,11 @@ export class PluginSystem {
     container.bind<EditorInit>(EditorInit).toSelf().inSingletonScope();
     const editorInit = container.get<EditorInit>(EditorInit);
     editorInit.init();
+
+    // init registry configuration
+    container.bind<RegistryInit>(RegistryInit).toSelf().inSingletonScope();
+    const registryInit = container.get<RegistryInit>(RegistryInit);
+    registryInit.init();
 
     // init welcome configuration
     container.bind<WelcomeInit>(WelcomeInit).toSelf().inSingletonScope();
@@ -1037,6 +1048,7 @@ export class PluginSystem {
         selectedProvider: ProviderContainerConnectionInfo,
         options?: {
           build?: boolean;
+          replace?: boolean;
         },
       ): Promise<PlayKubeInfo> => {
         return containerProviderRegistry.playKube(yamlFilePath, selectedProvider, options);
@@ -1224,6 +1236,30 @@ export class PluginSystem {
         );
       },
     );
+
+    this.ipcHandle(
+      'container-provider-registry:updateImage',
+      async (_listener, engineId: string, imageId: string, tag: string): Promise<void> => {
+        const task = taskManager.createTask({
+          title: `Updating image '${tag}'`,
+        });
+        try {
+          await containerProviderRegistry.updateImage(engineId, imageId, tag);
+          task.status = 'success';
+        } catch (error: unknown) {
+          // "Image is already the latest version" is not a breaking error, treat as success
+          if (error instanceof LatestImageError) {
+            task.name = `Image '${tag}' is already up to date`;
+            task.status = 'success';
+            return;
+          }
+          task.error = String(error);
+          task.status = 'failure';
+          throw error;
+        }
+      },
+    );
+
     this.ipcHandle(
       'container-provider-registry:pushImage',
       async (_listener, engine: string, imageId: string, callbackId: number): Promise<void> => {
@@ -1459,6 +1495,7 @@ export class PluginSystem {
         }
         if (target) {
           titleArgs.push(`(${target})`);
+          telemetry.track('build-image-intermediate-target');
         }
 
         // create task

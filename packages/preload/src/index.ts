@@ -403,6 +403,7 @@ export function initExposure(): void {
       selectedProvider: ProviderContainerConnectionInfo,
       options?: {
         build?: boolean;
+        replace?: boolean;
       },
     ): Promise<PlayKubeInfo> => {
       return ipcInvoke('container-provider-registry:playKube', relativeContainerfilePath, selectedProvider, options);
@@ -574,6 +575,13 @@ export function initExposure(): void {
   contextBridge.exposeInMainWorld('saveImages', async (options: ImagesSaveOptions): Promise<void> => {
     return ipcInvoke('container-provider-registry:saveImages', options);
   });
+
+  contextBridge.exposeInMainWorld(
+    'updateImage',
+    async (engineId: string, imageId: string, tag: string): Promise<void> => {
+      return ipcInvoke('container-provider-registry:updateImage', engineId, imageId, tag);
+    },
+  );
 
   contextBridge.exposeInMainWorld('loadImages', async (options: ImageLoadOptions): Promise<void> => {
     return ipcInvoke('container-provider-registry:loadImages', options);

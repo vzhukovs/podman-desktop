@@ -247,6 +247,8 @@ export class KubernetesClient {
             githubDiscussionLink: 'https://github.com/podman-desktop/podman-desktop/discussions/11424',
             image: kubernetesImage,
           },
+          // enabled by default
+          default: {},
         },
       },
     };
@@ -270,6 +272,8 @@ export class KubernetesClient {
     const statesExperimental = this.experimentalConfigurationManager.isExperimentalConfigurationEnabled(
       'kubernetes.statesExperimental',
     );
+    this.telemetry.track('kubernetesExperimentalMode', { enabled: statesExperimental });
+
     if (statesExperimental) {
       const manager = new ContextsManagerExperimental();
       this.contextsState = manager;
