@@ -321,13 +321,8 @@ export function refreshKindClustersOnProviderConnectionUpdate(provider: extensio
   });
 
   // also listen to container connection register/unregister
-  extensionApi.provider.onDidRegisterContainerConnection(() => {
-    updateKindProviderState();
-  });
-
-  extensionApi.provider.onDidUnregisterContainerConnection(() => {
-    updateKindProviderState();
-  });
+  extensionApi.provider.onDidRegisterContainerConnection(updateKindProviderState);
+  extensionApi.provider.onDidUnregisterContainerConnection(updateKindProviderState);
 }
 
 let currentUpdateDisposable: extensionApi.Disposable | undefined = undefined;
