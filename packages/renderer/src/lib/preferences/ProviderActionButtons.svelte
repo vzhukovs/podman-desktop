@@ -62,7 +62,9 @@ const showCreateNewButton = $derived(
     provider.vmProviderConnectionCreation,
 );
 
-const showSetupButton = $derived(globalContext && (isOnboarding ?? hasAnyConfiguration(provider)));
+const showSetupButton = $derived(
+  globalContext && (isOnboardingEnabled(provider, globalContext) || hasAnyConfiguration(provider)),
+);
 
 const showUpdateButton = $derived(provider.updateInfo?.version && provider.version !== provider.updateInfo?.version);
 
