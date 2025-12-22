@@ -29,11 +29,7 @@ import type { ProviderInfo } from '/@api/provider-info';
 
 import ProviderActionButtons from './ProviderActionButtons.svelte';
 
-vi.mock('tinro', () => ({
-  router: {
-    goto: vi.fn(),
-  },
-}));
+vi.mock(import('tinro'));
 
 vi.mock(import('/@/lib/dashboard/ProviderUpdateButton.svelte'));
 
