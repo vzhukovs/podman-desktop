@@ -339,10 +339,6 @@ function hasAnyConfiguration(provider: ProviderInfo): boolean {
   );
 }
 
-function handleCreateNew(provider: ProviderInfo, displayName: string): Promise<void> {
-  return doCreateNew(provider, displayName);
-}
-
 function handleSetup(provider: ProviderInfo): void {
   if (globalContext && isOnboardingEnabled(provider, globalContext)) {
     router.goto(`/preferences/onboarding/${provider.extensionId}`);
@@ -482,7 +478,7 @@ $effect(() => {
               provider={provider}
               globalContext={globalContext}
               providerInstallationInProgress={providerInstallationInProgress.get(provider.name) ?? false}
-              onCreateNew={handleCreateNew}
+              onCreateNew={doCreateNew}
               onSetup={handleSetup}
               onUpdatePreflightChecks={handleUpdatePreflightChecks}
               isOnboardingEnabled={isOnboardingEnabled}
