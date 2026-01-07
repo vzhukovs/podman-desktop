@@ -27,6 +27,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { Certificates } from '/@/plugin/certificates.js';
 import type { ContributionManager } from '/@/plugin/contribution-manager.js';
+import type { ExtensionApiVersion } from '/@/plugin/extension/extension-api-version.js';
 import type { KubeGeneratorRegistry } from '/@/plugin/kubernetes/kube-generator-registry.js';
 import { NavigationManager } from '/@/plugin/navigation/navigation-manager.js';
 import type { WebviewRegistry } from '/@/plugin/webview/webview-registry.js';
@@ -276,6 +277,10 @@ const dialogRegistry: DialogRegistry = {
 
 const certificates: Certificates = {} as unknown as Certificates;
 
+const extensionApiVersion: ExtensionApiVersion = {
+  getApiVersion: vi.fn(),
+};
+
 const extensionWatcher = {
   monitor: vi.fn(),
   untrack: vi.fn(),
@@ -373,6 +378,7 @@ beforeEach(() => {
     extensionWatcher,
     extensionDevelopmentFolder,
     extensionAnalyzer,
+    extensionApiVersion,
   );
 });
 
@@ -1856,6 +1862,17 @@ test('check version', async () => {
 
   // check we called method
   expect(readPodmanVersion).toBe(fakeVersion);
+});
+
+describe('apiVersion', () => {
+  const APP_VERSION_MOCK = '1.2.3';
+
+  test('expect apiVersion to be the return value of ExtensionApiVersion#getApiVersion', async () => {
+    vi.mocked(extensionApiVersion.getApiVersion).mockReturnValue(APP_VERSION_MOCK);
+    const api = createApi();
+
+    expect(api.apiVersion).toEqual(APP_VERSION_MOCK);
+  });
 });
 
 test('listPods', async () => {
