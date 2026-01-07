@@ -338,6 +338,9 @@ const readdirMock = vi.mocked(
 /* eslint-disable @typescript-eslint/no-empty-function */
 beforeEach(() => {
   vi.resetAllMocks();
+  Object.defineProperty(process, 'resourcesPath', {
+    value: '/resources',
+  });
 
   extensionLoader = new TestExtensionLoader(
     commandRegistry,
@@ -408,7 +411,7 @@ describe('extensionLoader#start', () => {
 
     expect(readDevelopmentFoldersMock).toHaveBeenCalledOnce();
     const devFolder = readDevelopmentFoldersMock.mock.calls[0]?.[0];
-    expect(devFolder?.endsWith('extensions-extra')).toBeTruthy();
+    expect(devFolder).toEqual(path.join(process.resourcesPath, 'extensions-extra'));
   });
 
   test('error in one of analyzeExtension should not be dramatic', async () => {
