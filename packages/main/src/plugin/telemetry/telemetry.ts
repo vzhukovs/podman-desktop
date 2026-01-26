@@ -39,6 +39,7 @@ import { type IConfigurationNode, IConfigurationRegistry } from '/@api/configura
 import type { Event } from '/@api/event.js';
 import type { FeedbackProperties } from '/@api/feedback.js';
 import { TelemetryMessages } from '/@api/telemetry.js';
+import { TelemetrySettings } from '/@api/telemetry/telemetry-settings.js';
 import product from '/@product.json' with { type: 'json' };
 
 import telemetry from '../../../../../telemetry.json' with { type: 'json' };
@@ -47,7 +48,6 @@ import { Emitter } from '../events/emitter.js';
 import { TelemetryTrustedValue as TypeTelemetryTrustedValue } from '../types/telemetry.js';
 import { Identity } from './identity.js';
 import type { TelemetryRule } from './telemetry-api.js';
-import { TelemetrySettings } from './telemetry-settings.js';
 
 export const TRACK_EVENT_TYPE = 'track';
 export const PAGE_EVENT_TYPE = 'page';
@@ -110,17 +110,16 @@ export class Telemetry {
 
   async init(): Promise<void> {
     const telemetryMessages = this.getTelemetryMessages();
-    const telemetryLink =
-      telemetryMessages.infoLink && telemetryMessages.infoURL
-        ? ` [${telemetryMessages.infoLink}](${telemetryMessages.infoURL})`
-        : '';
+    const telemetryInfo = telemetryMessages.info
+      ? ` [${telemetryMessages.info.link}](${telemetryMessages.info.url})`
+      : '';
     const telemetryConfigurationNode: IConfigurationNode = {
       id: 'preferences.telemetry',
       title: 'Telemetry',
       type: 'object',
       properties: {
         [TelemetrySettings.SectionName + '.' + TelemetrySettings.Enabled]: {
-          markdownDescription: `${telemetryMessages.acceptMessage}${telemetryLink}`,
+          markdownDescription: `${telemetryMessages.acceptMessage}${telemetryInfo}`,
           type: 'boolean',
           default: true,
         },
@@ -184,8 +183,18 @@ export class Telemetry {
   getTelemetryMessages(): TelemetryMessages {
     return {
       acceptMessage: product.telemetry.acceptMessage,
-      infoLink: product.telemetry.infoLink,
-      infoURL: product.telemetry.infoURL,
+      info: product.telemetry.info
+        ? {
+            link: product.telemetry.info?.link,
+            url: product.telemetry.info?.url,
+          }
+        : undefined,
+      privacy: product.telemetry.privacy
+        ? {
+            link: product.telemetry.privacy?.link,
+            url: product.telemetry.privacy?.url,
+          }
+        : undefined,
     } as TelemetryMessages;
   }
 
