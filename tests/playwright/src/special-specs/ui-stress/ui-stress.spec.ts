@@ -20,7 +20,9 @@ import { isLinux } from '/@/utility/platform';
 import { waitForPodmanMachineStartup } from '/@/utility/wait';
 
 const numberOfObjects = Number(process.env.OBJECT_NUM) || 100;
+const baselineImageCount = Number(process.env.BASELINE_IMAGE_COUNT) || 0;
 console.log(`numberOfObjects => ${numberOfObjects}`);
+console.log(`baselineImageCount => ${baselineImageCount}`);
 
 test.beforeAll(async ({ runner, welcomePage, page }) => {
   runner.setVideoAndTraceName('ui-stress-e2e');
@@ -41,7 +43,9 @@ test.describe.serial('Verification of UI handling lots of objects', { tag: ['@ui
     await playExpect(images.heading).toBeVisible({ timeout: 10_000 });
     //count images => 1 original image + (1 tagged * numberOfObjects) + 1 localhost/podman-pause from pods (only ubuntu!) = numberOfObjects + 2
     const expectedImages = isLinux ? numberOfObjects + 2 : numberOfObjects + 1;
-    await playExpect.poll(async () => await images.countRowsFromTable(), { timeout: 10_000 }).toBe(expectedImages);
+    await playExpect
+      .poll(async () => await images.countRowsFromTable(), { timeout: 10_000 })
+      .toBe(baselineImageCount + expectedImages);
     for (let imgNum = 1; imgNum <= numberOfObjects; imgNum++) {
       await playExpect
         .poll(async () => await images.waitForRowToExists(`localhost/my-image-${imgNum}`), { timeout: 0 })
