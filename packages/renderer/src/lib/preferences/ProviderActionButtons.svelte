@@ -56,11 +56,19 @@ const buttonTitle = $derived(
         : undefined) ?? 'Create new',
 );
 
-const showCreateNewButton = $derived(
+const hasConnectionFactory = $derived(
   provider.containerProviderConnectionCreation ||
     provider.kubernetesProviderConnectionCreation ||
     provider.vmProviderConnectionCreation,
 );
+
+const hasWarnings = $derived(provider.warnings && provider.warnings.length > 0);
+
+const warningsTooltip = $derived(provider.warnings?.map(w => w.details ?? w.name).join('. ') ?? '');
+
+const showCreateNewButton = $derived(hasConnectionFactory || hasWarnings);
+
+const isCreateButtonDisabled = $derived(!hasConnectionFactory && hasWarnings);
 
 const showSetupButton = $derived(
   globalContext && (isOnboardingEnabled(provider, globalContext) || hasAnyConfiguration(provider)),
@@ -92,10 +100,11 @@ function handleSetup(): void {
   {:else}
     <div class="flex flex-row justify-around flex-wrap gap-2">
       {#if showCreateNewButton}
-        <Tooltip bottom tip="Create new {providerDisplayName}">
+        <Tooltip bottom tip={isCreateButtonDisabled ? warningsTooltip : `Create new ${providerDisplayName}`}>
           <Button
             aria-label="Create new {providerDisplayName}"
             inProgress={providerInstallationInProgress}
+            disabled={isCreateButtonDisabled}
             onclick={handleCreateNew}>
             {buttonTitle} ...
           </Button>
