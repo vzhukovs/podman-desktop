@@ -20,10 +20,16 @@ import '@testing-library/jest-dom/vitest';
 
 import { Dropdown } from '@podman-desktop/ui-svelte';
 import { fireEvent, render } from '@testing-library/svelte';
+import { get } from 'svelte/store';
 import { assert, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import PreferencesProxiesRendering from '/@/lib/preferences/PreferencesProxiesRendering.svelte';
 import { PROXY_LABELS } from '/@/lib/preferences/proxy-state-labels';
+import {
+  clearManualProxySettings,
+  manualProxySettings,
+  saveManualProxySettings,
+} from '/@/stores/manual-proxy-settings';
 import { PROXY_CONFIG_KEYS, ProxyState } from '/@api/proxy';
 
 // mock the ui library
@@ -494,6 +500,63 @@ describe('managed label', () => {
       expect(httpProxyInput).toBeDisabled();
       expect(httpsProxyInput).toBeDisabled();
       expect(noProxyInput).toBeDisabled();
+    });
+  });
+});
+
+describe('manual proxy settings persistence', () => {
+  test('should restore manual settings from store when in System mode', async () => {
+    saveManualProxySettings({
+      httpProxy: 'http://saved-proxy:8080',
+      httpsProxy: '',
+      noProxy: 'localhost',
+    });
+
+    vi.mocked(window.getProxyState).mockResolvedValue(ProxyState.PROXY_SYSTEM);
+    vi.mocked(window.getProxySettings).mockResolvedValue({
+      httpProxy: undefined,
+      httpsProxy: undefined,
+      noProxy: 'local,169.254/16',
+    });
+
+    const { container } = render(PreferencesProxiesRendering);
+
+    await vi.waitFor(() => {
+      const httpInput = container.querySelector('input#httpProxy') as HTMLInputElement;
+      expect(httpInput.value).toBe('http://saved-proxy:8080');
+    });
+  });
+
+  test('should save settings to store when updating in Manual mode', async () => {
+    vi.mocked(window.getProxyState).mockResolvedValue(ProxyState.PROXY_MANUAL);
+    vi.mocked(window.getProxySettings).mockResolvedValue({
+      httpProxy: '',
+      httpsProxy: '',
+      noProxy: '',
+    });
+    vi.mocked(window.setProxyState).mockResolvedValue(undefined);
+    vi.mocked(window.updateProxySettings).mockResolvedValue(undefined);
+    vi.mocked(window.showMessageBox).mockResolvedValue({ response: 0 });
+
+    clearManualProxySettings();
+
+    const { container, getByRole } = render(PreferencesProxiesRendering);
+
+    await vi.waitFor(() => {
+      const httpInput = container.querySelector('input#httpProxy') as HTMLInputElement;
+      expect(httpInput).toBeInTheDocument();
+      expect(httpInput).not.toBeDisabled();
+    });
+
+    const httpInput = container.querySelector('input#httpProxy') as HTMLInputElement;
+    httpInput.value = 'http://new-proxy:8080';
+    await fireEvent.input(httpInput);
+
+    const updateBtn = getByRole('button', { name: 'Update' });
+    await fireEvent.click(updateBtn);
+
+    await vi.waitFor(() => {
+      expect(get(manualProxySettings)?.httpProxy).toBe('http://new-proxy:8080');
     });
   });
 });

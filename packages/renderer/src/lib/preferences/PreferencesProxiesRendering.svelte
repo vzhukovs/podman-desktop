@@ -1,9 +1,11 @@
 <script lang="ts">
 import { faPen } from '@fortawesome/free-solid-svg-icons';
 import { Button, Dropdown, ErrorMessage, Input } from '@podman-desktop/ui-svelte';
-import { onMount } from 'svelte';
+import { onDestroy, onMount } from 'svelte';
+import { get } from 'svelte/store';
 
 import { PROXY_LABELS } from '/@/lib/preferences/proxy-state-labels';
+import { manualProxySettings, saveManualProxySettings } from '/@/stores/manual-proxy-settings';
 import { PROXY_CONFIG_KEYS, ProxyState } from '/@api/proxy';
 
 import PreferencesManagedInput from './PreferencesManagedInput.svelte';
@@ -22,11 +24,30 @@ let noProxyLocked = false;
 let proxyEnabledLocked = false;
 
 onMount(async () => {
-  const proxySettings = await window.getProxySettings();
-  httpProxy = proxySettings?.httpProxy ?? '';
-  httpsProxy = proxySettings?.httpsProxy ?? '';
-  noProxy = proxySettings?.noProxy ?? '';
   proxyState = await window.getProxyState();
+
+  if (proxyState === ProxyState.PROXY_MANUAL) {
+    // Read actual settings from the backend first
+    const proxySettings = await window.getProxySettings();
+    httpProxy = proxySettings?.httpProxy ?? '';
+    httpsProxy = proxySettings?.httpsProxy ?? '';
+    noProxy = proxySettings?.noProxy ?? '';
+
+    saveManualProxySettings({ httpProxy, httpsProxy, noProxy });
+  } else {
+    const savedSettings = get(manualProxySettings);
+    if (savedSettings) {
+      httpProxy = savedSettings.httpProxy;
+      httpsProxy = savedSettings.httpsProxy;
+      noProxy = savedSettings.noProxy;
+    } else {
+      // First run of the PD
+      const proxySettings = await window.getProxySettings();
+      httpProxy = proxySettings?.httpProxy ?? '';
+      httpsProxy = proxySettings?.httpsProxy ?? '';
+      noProxy = proxySettings?.noProxy ?? '';
+    }
+  }
 
   // Check if proxy settings are locked by managed configuration
   const configProperties = await window.getConfigurationProperties();
@@ -49,6 +70,13 @@ onMount(async () => {
   }
 });
 
+onDestroy(() => {
+  // Store manual settings to avoid losing it when switching between pages
+  if (proxyState === ProxyState.PROXY_MANUAL) {
+    saveManualProxySettings({ httpProxy, httpsProxy, noProxy });
+  }
+});
+
 function onProxyStateChange(key: string): void {
   for (const [state, label] of PROXY_LABELS) {
     if (label === key) {
@@ -62,6 +90,10 @@ async function updateProxySettings(): Promise<void> {
   await window.setProxyState(proxyState);
   if (proxyState !== ProxyState.PROXY_SYSTEM) {
     await window.updateProxySettings({ httpProxy, httpsProxy, noProxy });
+  }
+
+  if (proxyState === ProxyState.PROXY_MANUAL) {
+    saveManualProxySettings({ httpProxy, httpsProxy, noProxy });
   }
 
   // loop over all providers and container connections to see if there are any running engines
