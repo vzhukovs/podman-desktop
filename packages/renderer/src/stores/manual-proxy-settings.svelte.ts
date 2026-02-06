@@ -16,21 +16,22 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
-import type { Writable } from 'svelte/store';
-import { writable } from 'svelte/store';
-
 export interface ManualProxySettings {
   httpProxy: string;
   httpsProxy: string;
   noProxy: string;
 }
 
-export const manualProxySettings: Writable<ManualProxySettings | undefined> = writable();
+let settings = $state<ManualProxySettings | undefined>(undefined);
 
-export function saveManualProxySettings(settings: ManualProxySettings): void {
-  manualProxySettings.set(settings);
-}
-
-export function clearManualProxySettings(): void {
-  manualProxySettings.set(undefined);
-}
+export const manualProxySettings = {
+  get current(): ManualProxySettings | undefined {
+    return settings;
+  },
+  save(newSettings: ManualProxySettings): void {
+    settings = newSettings;
+  },
+  clear(): void {
+    settings = undefined;
+  },
+};

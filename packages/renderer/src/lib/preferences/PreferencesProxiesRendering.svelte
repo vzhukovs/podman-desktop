@@ -2,10 +2,9 @@
 import { faPen } from '@fortawesome/free-solid-svg-icons';
 import { Button, Dropdown, ErrorMessage, Input } from '@podman-desktop/ui-svelte';
 import { onDestroy, onMount } from 'svelte';
-import { get } from 'svelte/store';
 
 import { PROXY_LABELS } from '/@/lib/preferences/proxy-state-labels';
-import { manualProxySettings, saveManualProxySettings } from '/@/stores/manual-proxy-settings';
+import { manualProxySettings } from '/@/stores/manual-proxy-settings.svelte';
 import { PROXY_CONFIG_KEYS, ProxyState } from '/@api/proxy';
 
 import PreferencesManagedInput from './PreferencesManagedInput.svelte';
@@ -33,9 +32,9 @@ onMount(async () => {
     httpsProxy = proxySettings?.httpsProxy ?? '';
     noProxy = proxySettings?.noProxy ?? '';
 
-    saveManualProxySettings({ httpProxy, httpsProxy, noProxy });
+    manualProxySettings.save({ httpProxy, httpsProxy, noProxy });
   } else {
-    const savedSettings = get(manualProxySettings);
+    const savedSettings = manualProxySettings.current;
     if (savedSettings) {
       httpProxy = savedSettings.httpProxy;
       httpsProxy = savedSettings.httpsProxy;
@@ -73,7 +72,7 @@ onMount(async () => {
 onDestroy(() => {
   // Store manual settings to avoid losing it when switching between pages
   if (proxyState === ProxyState.PROXY_MANUAL) {
-    saveManualProxySettings({ httpProxy, httpsProxy, noProxy });
+    manualProxySettings.save({ httpProxy, httpsProxy, noProxy });
   }
 });
 
@@ -93,7 +92,7 @@ async function updateProxySettings(): Promise<void> {
   }
 
   if (proxyState === ProxyState.PROXY_MANUAL) {
-    saveManualProxySettings({ httpProxy, httpsProxy, noProxy });
+    manualProxySettings.save({ httpProxy, httpsProxy, noProxy });
   }
 
   // loop over all providers and container connections to see if there are any running engines

@@ -20,16 +20,11 @@ import '@testing-library/jest-dom/vitest';
 
 import { Dropdown } from '@podman-desktop/ui-svelte';
 import { fireEvent, render } from '@testing-library/svelte';
-import { get } from 'svelte/store';
 import { assert, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import PreferencesProxiesRendering from '/@/lib/preferences/PreferencesProxiesRendering.svelte';
 import { PROXY_LABELS } from '/@/lib/preferences/proxy-state-labels';
-import {
-  clearManualProxySettings,
-  manualProxySettings,
-  saveManualProxySettings,
-} from '/@/stores/manual-proxy-settings';
+import { manualProxySettings } from '/@/stores/manual-proxy-settings.svelte';
 import { PROXY_CONFIG_KEYS, ProxyState } from '/@api/proxy';
 
 // mock the ui library
@@ -506,7 +501,7 @@ describe('managed label', () => {
 
 describe('manual proxy settings persistence', () => {
   test('should restore manual settings from store when in System mode', async () => {
-    saveManualProxySettings({
+    manualProxySettings.save({
       httpProxy: 'http://saved-proxy:8080',
       httpsProxy: '',
       noProxy: 'localhost',
@@ -538,7 +533,7 @@ describe('manual proxy settings persistence', () => {
     vi.mocked(window.updateProxySettings).mockResolvedValue(undefined);
     vi.mocked(window.showMessageBox).mockResolvedValue({ response: 0 });
 
-    clearManualProxySettings();
+    manualProxySettings.clear();
 
     const { container, getByRole } = render(PreferencesProxiesRendering);
 
@@ -556,7 +551,7 @@ describe('manual proxy settings persistence', () => {
     await fireEvent.click(updateBtn);
 
     await vi.waitFor(() => {
-      expect(get(manualProxySettings)?.httpProxy).toBe('http://new-proxy:8080');
+      expect(manualProxySettings.current?.httpProxy).toBe('http://new-proxy:8080');
     });
   });
 });

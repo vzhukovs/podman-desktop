@@ -16,18 +16,17 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
-import { get } from 'svelte/store';
 import { beforeEach, describe, expect, test } from 'vitest';
 
-import { clearManualProxySettings, manualProxySettings, saveManualProxySettings } from './manual-proxy-settings';
+import { manualProxySettings } from './manual-proxy-settings.svelte';
 
-describe('manualProxySettings store', () => {
+describe('manualProxySettings', () => {
   beforeEach(() => {
-    clearManualProxySettings();
+    manualProxySettings.clear();
   });
 
   test('should be undefined initially', () => {
-    expect(get(manualProxySettings)).toBeUndefined();
+    expect(manualProxySettings.current).toBeUndefined();
   });
 
   test('should save manual proxy settings', () => {
@@ -37,15 +36,15 @@ describe('manualProxySettings store', () => {
       noProxy: 'localhost',
     };
 
-    saveManualProxySettings(settings);
+    manualProxySettings.save(settings);
 
-    expect(get(manualProxySettings)).toEqual(settings);
+    expect(manualProxySettings.current).toEqual(settings);
   });
 
   test('should clear settings', () => {
-    saveManualProxySettings({ httpProxy: 'test', httpsProxy: '', noProxy: '' });
-    clearManualProxySettings();
+    manualProxySettings.save({ httpProxy: 'test', httpsProxy: '', noProxy: '' });
+    manualProxySettings.clear();
 
-    expect(get(manualProxySettings)).toBeUndefined();
+    expect(manualProxySettings.current).toBeUndefined();
   });
 });
