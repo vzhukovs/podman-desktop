@@ -227,7 +227,11 @@ function numberItemValue(): number {
         value={typeof givenValue === 'string' ? givenValue : (recordValue ?? '')}
         onChange={onChange} />
     {:else if record.enum && record.enum.length > 0}
-      <EnumItem record={record} value={typeof givenValue === 'string' ? givenValue : recordValue} onChange={onChange} />
+      {#if typeof givenValue === 'string'}
+        <EnumItem record={record} bind:value={givenValue} onChange={onChange} />
+      {:else}
+        <EnumItem record={record} bind:value={recordValue} onChange={onChange} />
+      {/if}
     {:else if record.format === 'password'}
       <PasswordStringItem
         record={record}
