@@ -18,6 +18,7 @@
 
 // Top-level API files
 export * from './async-disposable.js';
+export * from './certificate-info.js';
 export * from './cli-tool-info.js';
 export * from './color-info.js';
 export * from './command-info.js';
@@ -74,8 +75,6 @@ export * from './provider-info.js';
 export * from './proxy.js';
 export * from './pull-event.js';
 export * from './release-notes-info.js';
-export * from './repository-info-parser.js';
-export * from './repository-infos.js';
 export * from './status-bar.js';
 export * from './taskInfo.js';
 export * from './tasks-preferences.js';
@@ -85,3 +84,4 @@ export * from './tray-menu-info.js';
 export * from './view-info.js';
 export * from './volume-info.js';
 export * from './webview-info.js';
+export * from './welcome-info.js';

@@ -39,8 +39,10 @@ const {
   fuchsia,
   gray,
   green,
+  slate,
   neutral,
   purple,
+  violet,
   red,
   sky,
   stone,
@@ -367,7 +369,7 @@ export class ColorRegistry {
       light: gray[300],
     });
     this.registerColor(`${glNav}icon`, {
-      dark: gray[600],
+      dark: gray[400],
       light: charcoal[200],
     });
     this.registerColor(`${glNav}icon-hover`, {
@@ -545,7 +547,7 @@ export class ColorRegistry {
   protected initContent(): void {
     const ct = 'content-';
     this.registerColor(`${ct}breadcrumb`, {
-      dark: gray[600],
+      dark: gray[400],
       light: purple[900],
     });
 
@@ -560,17 +562,17 @@ export class ColorRegistry {
     });
 
     this.registerColor(`${ct}text`, {
-      dark: gray[700],
+      dark: gray[400],
       light: gray[900],
     });
 
     this.registerColor(`${ct}sub-header`, {
-      dark: gray[900],
+      dark: gray[400],
       light: purple[900],
     });
 
     this.registerColor(`${ct}header-icon`, {
-      dark: gray[600],
+      dark: gray[400],
       light: purple[700],
     });
 
@@ -605,7 +607,7 @@ export class ColorRegistry {
     });
 
     this.registerColor(`${ct}card-light-title`, {
-      dark: gray[800],
+      dark: gray[500],
       light: purple[900],
     });
 
@@ -655,12 +657,12 @@ export class ColorRegistry {
     });
 
     this.registerColor(`${ct}card-carousel-nav`, {
-      dark: gray[800],
+      dark: gray[500],
       light: gray[300],
     });
 
     this.registerColor(`${ct}card-carousel-hover-nav`, {
-      dark: gray[600],
+      dark: gray[400],
       light: gray[500],
     });
 
@@ -718,11 +720,11 @@ export class ColorRegistry {
       light: gray[700],
     });
     this.registerColor(`${sNav}hover-text`, {
-      dark: gray[700],
+      dark: gray[400],
       light: charcoal[200],
     });
     this.registerColor(`${sNav}placeholder-text`, {
-      dark: gray[700],
+      dark: gray[500],
       light: charcoal[200],
     });
     this.registerColor(`${sNav}stroke`, {
@@ -742,7 +744,7 @@ export class ColorRegistry {
       light: charcoal[100],
     });
     this.registerColor(`${sNav}icon`, {
-      dark: gray[700],
+      dark: gray[400],
       light: charcoal[200],
     });
     this.registerColor(`${sNav}focused-icon`, {
@@ -754,7 +756,7 @@ export class ColorRegistry {
       light: gray[700],
     });
     this.registerColor(`${sNav}hover-icon`, {
-      dark: gray[700],
+      dark: gray[400],
       light: purple[600],
     });
   }
@@ -764,7 +766,7 @@ export class ColorRegistry {
     const sNav = 'input-checkbox-';
 
     this.registerColor(`${sNav}disabled`, {
-      dark: gray[700],
+      dark: gray[600],
       light: charcoal[200],
     });
     this.registerColor(`${sNav}indeterminate`, {
@@ -851,7 +853,7 @@ export class ColorRegistry {
     const tab = 'table-';
     // color of columns names
     this.registerColor(`${tab}header-text`, {
-      dark: gray[600],
+      dark: gray[400],
       light: charcoal[200],
     });
     // color of up/down arrows when column is not the ordered one
@@ -862,7 +864,7 @@ export class ColorRegistry {
 
     // color for most text in tables
     this.registerColor(`${tab}body-text`, {
-      dark: gray[700],
+      dark: gray[400],
       light: charcoal[100],
     });
     // color for the text in the main column of the table (generally Name)
@@ -889,7 +891,7 @@ export class ColorRegistry {
       light: charcoal[500],
     });
     this.registerColor(`${details}empty-icon`, {
-      dark: gray[600],
+      dark: gray[400],
       light: charcoal[200],
     });
     this.registerColor(`${details}empty-header`, {
@@ -897,7 +899,7 @@ export class ColorRegistry {
       light: charcoal[500],
     });
     this.registerColor(`${details}empty-sub-header`, {
-      dark: gray[600],
+      dark: gray[400],
       light: charcoal[500],
     });
     this.registerColor(`${details}empty-cmdline-bg`, {
@@ -917,7 +919,7 @@ export class ColorRegistry {
       light: gray[300],
     });
     this.registerColor(`${details}card-header`, {
-      dark: gray[700],
+      dark: gray[400],
       light: charcoal[300],
     });
     this.registerColor(`${details}card-text`, {
@@ -929,7 +931,7 @@ export class ColorRegistry {
   protected initTab(): void {
     const tab = 'tab-';
     this.registerColor(`${tab}text`, {
-      dark: gray[600],
+      dark: gray[400],
       light: charcoal[200],
     });
     this.registerColor(`${tab}text-highlight`, {
@@ -1005,101 +1007,132 @@ export class ColorRegistry {
     const button = 'button-';
 
     this.registerColor(`${button}primary-bg`, {
-      dark: purple[600],
-      light: purple[600],
+      dark: violet[600],
+      light: violet[700],
     });
+
     this.registerColor(`${button}primary-hover-bg`, {
-      dark: purple[500],
-      light: purple[500],
+      dark: violet[500],
+      light: violet[600],
     });
+
     this.registerColor(`${button}secondary`, {
-      dark: gray[200],
-      light: purple[600],
+      dark: transparent,
+      light: violet[200],
     });
+
     this.registerColor(`${button}secondary-hover`, {
-      dark: purple[500],
-      light: purple[500],
+      dark: slate[700],
+      light: violet[100],
     });
+
     this.registerColor(`${button}text`, {
       dark: white,
       light: white,
     });
+
     this.registerColor(`${button}disabled`, {
-      dark: charcoal[300],
-      light: gray[600],
+      dark: stone[700],
+      light: stone[300],
     });
+
     this.registerColor(`${button}disabled-text`, {
       dark: charcoal[50],
       light: gray[900],
     });
-    this.registerColor(`${button}danger-border`, {
-      dark: red[500],
-      light: red[700],
-    });
+
+    this.registerColorDefinition(
+      this.color(`${button}danger-border`)
+        .withLight(colorPaletteHelper(red[700]))
+        .withDark(colorPaletteHelper(red[200]).withAlpha(0.4))
+        .build(),
+    );
+
     this.registerColor(`${button}danger-bg`, {
-      dark: transparent,
-      light: transparent,
+      dark: red[600],
+      light: red[200],
     });
+
     this.registerColor(`${button}danger-text`, {
-      dark: red[500],
+      dark: white,
       light: red[700],
     });
+
+    // deprecated since 2026-02-06. See https://github.com/podman-desktop/podman-desktop/pull/14876
+    // Use `button-danger-text` instead
     this.registerColor(`${button}danger-hover-text`, {
       dark: white,
-      light: white,
+      light: red[700],
     });
+
     this.registerColor(`${button}danger-hover-bg`, {
-      dark: red[600],
-      light: red[600],
+      dark: red[500],
+      light: red[100],
     });
+
     this.registerColor(`${button}danger-disabled-border`, {
-      dark: charcoal[50],
-      light: gray[900],
+      dark: red[600],
+      light: red[200],
     });
+
+    // deprecated since 2026-02-06. See https://github.com/podman-desktop/podman-desktop/pull/14876
+    // Unused color (danger buttons always use `button-danger-text`)
     this.registerColor(`${button}danger-disabled-text`, {
-      dark: charcoal[50],
-      light: gray[900],
+      dark: white,
+      light: red[700],
     });
+
     this.registerColor(`${button}danger-disabled-bg`, {
       dark: transparent,
       light: transparent,
     });
+
     this.registerColor(`${button}tab-border`, {
       dark: transparent,
       light: transparent,
     });
+
     this.registerColor(`${button}tab-border-selected`, {
       dark: purple[500],
       light: purple[600],
     });
+
     this.registerColor(`${button}tab-hover-border`, {
-      dark: charcoal[100],
-      light: gray[600],
+      dark: slate[700],
+      light: violet[100],
     });
+
     this.registerColor(`${button}tab-text`, {
-      dark: gray[600],
+      dark: gray[400],
       light: charcoal[200],
     });
+
     this.registerColor(`${button}tab-text-selected`, {
       dark: white,
       light: black,
     });
+
     this.registerColorDefinition(
       this.color(`${button}close-hover-bg`)
         .withLight(colorPaletteHelper(black).withAlpha(0.13))
         .withDark(colorPaletteHelper(white).withAlpha(0.13))
         .build(),
     );
+
     this.registerColor(`${button}link-text`, {
       dark: purple[400],
       light: purple[700],
     });
+
     this.registerColorDefinition(
       this.color(`${button}link-hover-bg`)
         .withLight(colorPaletteHelper(black).withAlpha(0.13))
         .withDark(colorPaletteHelper(white).withAlpha(0.13))
         .build(),
     );
+
+    // deprecated since 2026-02-06. See https://github.com/podman-desktop/podman-desktop/pull/14876
+    // Unused color
     this.registerColor(`${button}help-link-text`, {
       dark: gray[100],
       light: charcoal[900],
@@ -1136,7 +1169,7 @@ export class ColorRegistry {
     });
 
     this.registerColor(`${ab}disabled-text`, {
-      dark: gray[900],
+      dark: gray[700],
       light: gray[900],
     });
 
@@ -1154,7 +1187,7 @@ export class ColorRegistry {
     });
 
     this.registerColor(`${ab}details-disabled-text`, {
-      dark: gray[900],
+      dark: gray[700],
       light: gray[900],
     });
     this.registerColor(`${ab}details-disabled-bg`, {
@@ -1246,7 +1279,7 @@ export class ColorRegistry {
     });
 
     this.registerColor(`${dropdown}disabled-item-text`, {
-      dark: gray[900],
+      dark: gray[700],
       light: charcoal[100],
     });
     this.registerColor(`${dropdown}disabled-item-bg`, {
@@ -1263,7 +1296,7 @@ export class ColorRegistry {
       light: charcoal[900],
     });
     this.registerColor(`${input}${select}hover-text`, {
-      dark: gray[900],
+      dark: gray[400],
       light: charcoal[200],
     });
   }
@@ -1277,7 +1310,7 @@ export class ColorRegistry {
       light: purple[200],
     });
     this.registerColor(`${label}text`, {
-      dark: gray[500],
+      dark: gray[400],
       light: charcoal[300],
     });
 
@@ -1350,7 +1383,7 @@ export class ColorRegistry {
       light: charcoal[200],
     });
     this.registerColor(`${status}not-running`, {
-      dark: gray[700],
+      dark: gray[500],
       light: gray[900],
     });
     // "Warning"
@@ -1440,7 +1473,7 @@ export class ColorRegistry {
     });
 
     this.registerColor(`${onboarding}inactive-dot-border`, {
-      dark: gray[700],
+      dark: gray[500],
       light: gray[700],
     });
   }

@@ -18,6 +18,7 @@
 
 import '@testing-library/jest-dom/vitest';
 
+import type { ContainerInfo, ProviderInfo } from '@podman-desktop/core-api';
 import { fireEvent, render, type RenderResult, screen, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 /* eslint-disable import/no-duplicates */
@@ -28,8 +29,6 @@ import { beforeEach, expect, test, vi } from 'vitest';
 
 import { containersInfos } from '/@/stores/containers';
 import { providerInfos } from '/@/stores/providers';
-import type { ContainerInfo } from '/@api/container-info';
-import type { ProviderInfo } from '/@api/provider-info';
 
 import ContainerList from './ContainerList.svelte';
 
@@ -136,7 +135,7 @@ test('Expect is:running / is:stopped is added to the filter field', async () => 
   await waitFor(() => expect(get(providerInfos)).not.toHaveLength(0));
   await waitRender({});
 
-  const searchField = screen.getByPlaceholderText('Search containers...');
+  const searchField = screen.getByPlaceholderText('Search...');
   expect(searchField).toBeInTheDocument();
   expect(searchField).not.toHaveDisplayValue(/is:running/);
   expect(searchField).not.toHaveDisplayValue(/is:stopped/);
@@ -176,7 +175,7 @@ test('Expect filter is preserved between tabs', async () => {
   await waitFor(() => expect(get(providerInfos)).not.toHaveLength(0));
   await waitRender({});
 
-  const searchField = screen.getByPlaceholderText('Search containers...');
+  const searchField = screen.getByPlaceholderText('Search...');
   expect(searchField).toBeInTheDocument();
   const user = userEvent.setup();
   await user.type(searchField, 'foobar');
@@ -520,7 +519,7 @@ test('Expect clear filter in empty screen to clear serach term, except is:...', 
   await waitFor(() => expect(get(providerInfos)).not.toHaveLength(0));
   await waitRender({});
 
-  const searchField = screen.getByPlaceholderText('Search containers...');
+  const searchField = screen.getByPlaceholderText('Search...');
   expect(searchField).toBeInTheDocument();
   const user = userEvent.setup();
   await user.type(searchField, 'foobar');

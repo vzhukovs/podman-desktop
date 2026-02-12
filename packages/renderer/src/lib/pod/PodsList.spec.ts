@@ -20,6 +20,12 @@
 
 import '@testing-library/jest-dom/vitest';
 
+import type {
+  ContextGeneralState,
+  PodInfo,
+  ProviderContainerConnectionInfo,
+  ProviderInfo,
+} from '@podman-desktop/core-api';
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 /* eslint-disable import/no-duplicates */
@@ -32,9 +38,6 @@ import { beforeAll, expect, test, vi } from 'vitest';
 import PodsList from '/@/lib/pod/PodsList.svelte';
 import { filtered, podsInfos } from '/@/stores/pods';
 import { providerInfos } from '/@/stores/providers';
-import type { ContextGeneralState } from '/@api/kubernetes-contexts-states';
-import type { PodInfo } from '/@api/pod-info';
-import type { ProviderContainerConnectionInfo, ProviderInfo } from '/@api/provider-info';
 
 const getProvidersInfoMock = vi.fn();
 const listPodsMock = vi.fn();
@@ -544,7 +547,7 @@ test('Expect tab filtering to not duplicate filter condition in the search bar',
   await userEvent.click(runningTab);
   await userEvent.click(runningTab);
 
-  const searchInput = screen.getByPlaceholderText('Search pods...') as HTMLInputElement;
+  const searchInput = screen.getByPlaceholderText('Search...') as HTMLInputElement;
   expect(searchInput.value).toBe('is:running');
 });
 

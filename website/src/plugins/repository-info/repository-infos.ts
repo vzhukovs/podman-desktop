@@ -1,5 +1,5 @@
 /**********************************************************************
- * Copyright (C) 2022 Red Hat, Inc.
+ * Copyright (C) 2025-2026 Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,25 +16,13 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
-import { beforeEach, expect, test, vi } from 'vitest';
+import rootPackage from '../../../../package.json' with { type: 'json' };
+import { RepositoryInfoParser } from './repository-info-parser.js';
 
-import { urlValidator } from './FieldValidation';
+export const REPOSITORY_URL = rootPackage.repository;
+export const REPOSITORY_HOMEPAGE = rootPackage.homepage;
 
-beforeEach(() => {
-  vi.clearAllMocks();
-});
+const parser = new RepositoryInfoParser(REPOSITORY_URL);
 
-test('Should expect invalid domain', async () => {
-  const result = urlValidator()('my_invalid_domain');
-  expect(result[1]).toBe('Please enter a valid URL');
-});
-
-test('Should expect valid domain', async () => {
-  const result = urlValidator()('valid.com');
-  expect(result[0]).toBe(true);
-});
-
-test('Should expect valid TLD domain with more than 3 char domains', async () => {
-  const result = urlValidator()('foobar.mydomain.science');
-  expect(result[0]).toBe(true);
-});
+export const GITHUB_OWNER = parser.owner;
+export const GITHUB_REPOSITORY = parser.repository;
