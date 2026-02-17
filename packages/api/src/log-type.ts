@@ -1,5 +1,5 @@
 /**********************************************************************
- * Copyright (C) 2024 Red Hat, Inc.
+ * Copyright (C) 2026 Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,4 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
-import { z } from 'zod';
-
-export const RawThemeContributionSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  parent: z.string(),
-  // definition of colors
-  colors: z.record(z.string(), z.string()),
-});
-
-export type RawThemeContribution = z.output<typeof RawThemeContributionSchema>;
+export type LogType = 'log' | 'warn' | 'trace' | 'debug' | 'error';
