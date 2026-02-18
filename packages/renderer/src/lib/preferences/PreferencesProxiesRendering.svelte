@@ -32,9 +32,9 @@ onMount(async () => {
     httpsProxy = proxySettings?.httpsProxy ?? '';
     noProxy = proxySettings?.noProxy ?? '';
 
-    manualProxySettings.save({ httpProxy, httpsProxy, noProxy });
+    manualProxySettings.settings = { httpProxy, httpsProxy, noProxy };
   } else {
-    const savedSettings = manualProxySettings.current;
+    const savedSettings = manualProxySettings.settings;
     if (savedSettings) {
       httpProxy = savedSettings.httpProxy;
       httpsProxy = savedSettings.httpsProxy;
@@ -72,7 +72,7 @@ onMount(async () => {
 onDestroy(() => {
   // Store manual settings to avoid losing it when switching between pages
   if (proxyState === ProxyState.PROXY_MANUAL) {
-    manualProxySettings.save({ httpProxy, httpsProxy, noProxy });
+    manualProxySettings.settings = { httpProxy, httpsProxy, noProxy };
   }
 });
 
@@ -92,7 +92,7 @@ async function updateProxySettings(): Promise<void> {
   }
 
   if (proxyState === ProxyState.PROXY_MANUAL) {
-    manualProxySettings.save({ httpProxy, httpsProxy, noProxy });
+    manualProxySettings.settings = { httpProxy, httpsProxy, noProxy };
   }
 
   // loop over all providers and container connections to see if there are any running engines

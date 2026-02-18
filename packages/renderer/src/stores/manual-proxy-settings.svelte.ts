@@ -22,16 +22,6 @@ export interface ManualProxySettings {
   noProxy: string;
 }
 
-let settings = $state<ManualProxySettings | undefined>(undefined);
-
-export const manualProxySettings = {
-  get current(): ManualProxySettings | undefined {
-    return settings;
-  },
-  save(newSettings: ManualProxySettings): void {
-    settings = newSettings;
-  },
-  clear(): void {
-    settings = undefined;
-  },
-};
+export const manualProxySettings = $state<{ settings: ManualProxySettings | undefined }>({
+  settings: undefined,
+});

@@ -501,11 +501,11 @@ describe('managed label', () => {
 
 describe('manual proxy settings persistence', () => {
   test('should restore manual settings from store when in System mode', async () => {
-    manualProxySettings.save({
+    manualProxySettings.settings = {
       httpProxy: 'http://saved-proxy:8080',
       httpsProxy: '',
       noProxy: 'localhost',
-    });
+    };
 
     vi.mocked(window.getProxyState).mockResolvedValue(ProxyState.PROXY_SYSTEM);
     vi.mocked(window.getProxySettings).mockResolvedValue({
@@ -533,7 +533,7 @@ describe('manual proxy settings persistence', () => {
     vi.mocked(window.updateProxySettings).mockResolvedValue(undefined);
     vi.mocked(window.showMessageBox).mockResolvedValue({ response: 0 });
 
-    manualProxySettings.clear();
+    manualProxySettings.settings = undefined;
 
     const { container, getByRole } = render(PreferencesProxiesRendering);
 
@@ -551,7 +551,7 @@ describe('manual proxy settings persistence', () => {
     await fireEvent.click(updateBtn);
 
     await vi.waitFor(() => {
-      expect(manualProxySettings.current?.httpProxy).toBe('http://new-proxy:8080');
+      expect(manualProxySettings.settings?.httpProxy).toBe('http://new-proxy:8080');
     });
   });
 });

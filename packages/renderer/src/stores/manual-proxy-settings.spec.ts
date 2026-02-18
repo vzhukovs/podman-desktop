@@ -22,11 +22,11 @@ import { manualProxySettings } from './manual-proxy-settings.svelte';
 
 describe('manualProxySettings', () => {
   beforeEach(() => {
-    manualProxySettings.clear();
+    manualProxySettings.settings = undefined;
   });
 
   test('should be undefined initially', () => {
-    expect(manualProxySettings.current).toBeUndefined();
+    expect(manualProxySettings.settings).toBeUndefined();
   });
 
   test('should save manual proxy settings', () => {
@@ -36,15 +36,15 @@ describe('manualProxySettings', () => {
       noProxy: 'localhost',
     };
 
-    manualProxySettings.save(settings);
+    manualProxySettings.settings = settings;
 
-    expect(manualProxySettings.current).toEqual(settings);
+    expect(manualProxySettings.settings).toEqual(settings);
   });
 
   test('should clear settings', () => {
-    manualProxySettings.save({ httpProxy: 'test', httpsProxy: '', noProxy: '' });
-    manualProxySettings.clear();
+    manualProxySettings.settings = { httpProxy: 'test', httpsProxy: '', noProxy: '' };
+    manualProxySettings.settings = undefined;
 
-    expect(manualProxySettings.current).toBeUndefined();
+    expect(manualProxySettings.settings).toBeUndefined();
   });
 });
