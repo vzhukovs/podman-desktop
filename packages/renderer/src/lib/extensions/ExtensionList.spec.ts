@@ -30,6 +30,7 @@ import ExtensionList from './ExtensionList.svelte';
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(window.getConfigurationValue).mockResolvedValue(true);
 });
 
 export const aFakeExtension: CatalogExtension = {
@@ -100,8 +101,10 @@ test('Expect to see extensions', async () => {
 
   render(ExtensionList);
 
-  const headingExtensions = screen.getByRole('heading', { name: 'extensions' });
-  expect(headingExtensions).toBeInTheDocument();
+  await vi.waitFor(() => {
+    const headingExtensions = screen.getByRole('heading', { name: 'extensions' });
+    expect(headingExtensions).toBeInTheDocument();
+  });
 
   // get first extension
   const myExtension1 = screen.getByRole('region', { name: 'idAInstalled' });
@@ -126,8 +129,12 @@ test('Expect to see empty screen on extension page only', async () => {
 
   render(ExtensionList, { searchTerm: 'A' });
 
-  let title = screen.queryByText(`No extensions matching 'A' found`);
-  expect(title).toBeInTheDocument();
+  let title: HTMLElement | null;
+
+  await vi.waitFor(() => {
+    title = screen.queryByText(`No extensions matching 'A' found`);
+    expect(title).toBeInTheDocument();
+  });
 
   // click on the catalog
   const catalogTab = screen.getByRole('button', { name: 'Catalog' });
@@ -143,12 +150,16 @@ test('Expect to see empty screen on catalog page only', async () => {
 
   render(ExtensionList, { searchTerm: 'A' });
 
-  let title = screen.queryByText(`No extensions matching 'A' found`);
-  expect(title).not.toBeInTheDocument();
+  let title: HTMLElement | null;
 
-  // click on the catalog
-  const catalogTab = screen.getByRole('button', { name: 'Catalog' });
-  await fireEvent.click(catalogTab);
+  await vi.waitFor(async () => {
+    title = screen.queryByText(`No extensions matching 'A' found`);
+    expect(title).not.toBeInTheDocument();
+
+    // click on the catalog
+    const catalogTab = screen.getByRole('button', { name: 'Catalog' });
+    await fireEvent.click(catalogTab);
+  });
 
   title = screen.queryByText(`No extensions matching 'A' found`);
   expect(title).toBeInTheDocument();
@@ -160,8 +171,12 @@ test('Expect to see empty screens on both pages', async () => {
 
   render(ExtensionList, { searchTerm: 'foo' });
 
-  let title = screen.getByText(`No extensions matching 'foo' found`);
-  expect(title).toBeInTheDocument();
+  let title: HTMLElement | null;
+
+  await vi.waitFor(() => {
+    title = screen.getByText(`No extensions matching 'foo' found`);
+    expect(title).toBeInTheDocument();
+  });
 
   // click on the catalog
   const catalogTab = screen.getByRole('button', { name: 'Catalog' });
@@ -177,8 +192,10 @@ test('Search extension page searches also description', async () => {
 
   render(ExtensionList, { searchTerm: 'bar' });
 
-  const myExtension1 = screen.getByRole('region', { name: 'idAInstalled' });
-  expect(myExtension1).toBeInTheDocument();
+  await vi.waitFor(() => {
+    const myExtension1 = screen.getByRole('region', { name: 'idAInstalled' });
+    expect(myExtension1).toBeInTheDocument();
+  });
 
   // second extension should not be there as only in catalog (not installed) and doesn't have "bar" in the description
   const extensionIdB = screen.queryByRole('group', { name: 'B Extension' });
@@ -200,9 +217,11 @@ test('Search catalog page searches also description', async () => {
 
   render(ExtensionList, { searchTerm: 'bar' });
 
-  // Click on the catalog
-  const catalogTab = screen.getByRole('button', { name: 'Catalog' });
-  await fireEvent.click(catalogTab);
+  await vi.waitFor(async () => {
+    // Click on the catalog
+    const catalogTab = screen.getByRole('button', { name: 'Catalog' });
+    await fireEvent.click(catalogTab);
+  });
 
   // Verify that the extension containing "bar" in the description is displayed
   const myExtension1 = screen.getByRole('group', { name: 'A Extension' });
@@ -217,11 +236,15 @@ test('Expect to see local extensions tab content', async () => {
   catalogExtensionInfos.set([]);
   extensionInfos.set([]);
 
+  vi.mocked(window.getConfigurationValue).mockResolvedValue(undefined);
+
   render(ExtensionList);
 
-  // select the local extensions tab
-  const localModeTab = screen.getByRole('button', { name: 'Local Extensions' });
-  await fireEvent.click(localModeTab);
+  await vi.waitFor(async () => {
+    // select the local extensions tab
+    const localModeTab = screen.getByRole('button', { name: 'Local Extensions' });
+    await fireEvent.click(localModeTab);
+  });
 
   // expect to see empty screen
   const emptyText = screen.getByText('Enable Preferences > Extensions > Development Mode to test local extensions');
@@ -234,12 +257,34 @@ test('Switching tabs keeps only terms in search term', async () => {
 
   render(ExtensionList, { searchTerm: 'bar category:bar not:installed' });
 
-  // Click on the catalog
-  const catalogTab = screen.getByRole('button', { name: 'Catalog' });
-  await fireEvent.click(catalogTab);
+  await vi.waitFor(async () => {
+    // Click on the catalog
+    const catalogTab = screen.getByRole('button', { name: 'Catalog' });
+    await fireEvent.click(catalogTab);
+  });
 
   // Verify that the extension containing "bar" in the description is displayed (which is not in bar category and is installed)
   // meaning that `category:bar not:installed` has been removed from search term
   const myExtension1 = screen.getByRole('group', { name: 'A Extension' });
   expect(myExtension1).toBeInTheDocument();
+});
+
+test('Expect install custom button is visible', async () => {
+  render(ExtensionList);
+
+  await vi.waitFor(() => {
+    const installCustomButton = screen.getByRole('button', { name: 'Install custom' });
+    expect(installCustomButton).toBeInTheDocument();
+  });
+});
+
+test('Expect install custom button to not be visible if extensions.customExtensions.enabled is false', async () => {
+  vi.mocked(window.getConfigurationValue).mockResolvedValue(false);
+
+  render(ExtensionList);
+
+  await vi.waitFor(() => {
+    const installCustomButton = screen.queryByRole('button', { name: 'Install custom' });
+    expect(installCustomButton).not.toBeInTheDocument();
+  });
 });

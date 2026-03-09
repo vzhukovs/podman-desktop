@@ -24,6 +24,10 @@ let { searchTerm = '', screen = 'installed' }: Props = $props();
 
 const extensionsUtils = new ExtensionsUtils();
 
+let enableCustomExtensions = $derived(
+  (await window.getConfigurationValue('extensions.customExtensions.enabled')) ?? true,
+);
+
 const filteredInstalledExtensions: CombinedExtensionInfoUI[] = $derived(
   extensionsUtils.filterInstalledExtensions($combinedInstalledExtensions, searchTerm),
 );
@@ -63,13 +67,15 @@ function changeScreen(newScreen: 'installed' | 'catalog' | 'development'): void 
 
 <NavPage bind:searchTerm={searchTerm} title="extensions">
   {#snippet additionalActions()}
-    <Button
-      on:click={(): void => {
-        installManualImageModal = true;
-      }}
-      icon={faCloudDownload}
-      title="Install manually an extension"
-      aria-label="Install custom">Install custom...</Button>
+    {#if enableCustomExtensions}
+      <Button
+        on:click={(): void => {
+          installManualImageModal = true;
+        }}
+        icon={faCloudDownload}
+        title="Install manually an extension"
+        aria-label="Install custom">Install custom...</Button>
+    {/if}
   {/snippet}
 
   {#snippet bottomAdditionalActions()}
