@@ -201,8 +201,8 @@ export class ColorRegistry {
     this.registerColor(definition.id, {
       light: definition.light,
       dark: definition.dark,
-      ...(definition.darkHc && { darkHc: definition.darkHc }),
-      ...(definition.lightHc && { lightHc: definition.lightHc }),
+      darkHc: definition.darkHc,
+      lightHc: definition.lightHc,
     });
   }
 
