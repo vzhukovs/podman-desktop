@@ -73,6 +73,8 @@ export class ColorBuilder {
   #colorId: string;
   #lightColor?: ColorPaletteHelper;
   #darkColor?: ColorPaletteHelper;
+  #darkHcColor?: ColorPaletteHelper;
+  #lightHcColor?: ColorPaletteHelper;
 
   constructor(colorId: string) {
     this.#colorId = colorId;
@@ -90,12 +92,34 @@ export class ColorBuilder {
   }
 
   /**
+   * Set the light high contrast theme color.
+   * @param color - The ColorPaletteHelper instance
+   * @returns This builder for method chaining
+   */
+  withLightHc(color: ColorPaletteHelper): this {
+    this.#lightHcColor = color;
+
+    return this;
+  }
+
+  /**
    * Set the dark theme color.
    * @param color - The ColorPaletteHelper instance
    * @returns This builder for method chaining
    */
   withDark(color: ColorPaletteHelper): this {
     this.#darkColor = color;
+
+    return this;
+  }
+
+  /**
+   * Set the dark high contrast theme color.
+   * @param color - The ColorPaletteHelper instance
+   * @returns This builder for method chaining
+   */
+  withDarkHc(color: ColorPaletteHelper): this {
+    this.#darkHcColor = color;
 
     return this;
   }
@@ -115,6 +139,8 @@ export class ColorBuilder {
       id: this.#colorId,
       light: applyAlpha(this.#lightColor.color, this.#lightColor.alpha),
       dark: applyAlpha(this.#darkColor.color, this.#darkColor.alpha),
+      ...(this.#darkHcColor && { darkHc: applyAlpha(this.#darkHcColor.color, this.#darkHcColor.alpha) }),
+      ...(this.#lightHcColor && { lightHc: applyAlpha(this.#lightHcColor.color, this.#lightHcColor.alpha) }),
     };
   }
 }
