@@ -631,6 +631,7 @@ export class ContainerProviderRegistry {
             Names: string[];
             Image: string;
             ImageID: string;
+            IsInfra?: boolean;
             Command?: string;
             Created: number;
             Ports: ContainerPortInfo[];
@@ -679,6 +680,7 @@ export class ContainerProviderRegistry {
                 Names: podmanContainer.Names.map(name => `/${name}`),
                 ImageID: `sha256:${podmanContainer.ImageID}`,
                 Image: podmanContainer.Image,
+                IsInfra: podmanContainer.IsInfra,
                 // convert to unix timestamp
                 Created: moment(podmanContainer.Created).unix(),
                 State: podmanContainer.State,
@@ -740,6 +742,7 @@ export class ContainerProviderRegistry {
                 engineType: provider.connection.type,
                 StartedAt: container.StartedAt ?? '',
                 Status: container.Status,
+                IsInfra: container.IsInfra,
                 ImageBase64RepoTag: Buffer.from(container.Image, 'binary').toString('base64'),
               };
               return containerInfo;
