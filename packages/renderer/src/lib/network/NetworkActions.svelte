@@ -26,13 +26,9 @@ const MenuComponent = $derived(dropdownMenu ? DropdownMenu : FlatMenu);
 let showUpdateNetworkDialog = $state(false);
 
 async function removeNetwork(): Promise<void> {
-  const oldStatus = object.status;
-  object.status = 'DELETING';
-
   try {
     await window.removeNetwork(object.engineId, object.id);
   } catch (error) {
-    object.status = oldStatus;
     await window.showMessageBox({
       title: 'Delete Network Failed',
       message: `Error while deleting network ${object.name}: ${error instanceof Error ? error.message : String(error)}`,

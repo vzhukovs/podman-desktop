@@ -416,3 +416,97 @@ test('Expect environment dropdown to filter networks by selected environment', a
     expect(screen.queryByText('docker-network')).not.toBeInTheDocument();
   });
 });
+
+test('Expect selection to survive a store refresh that replaces every network object', async () => {
+  await init();
+
+  const checkboxes = screen.getAllByRole('checkbox', { name: 'Toggle network' });
+  await fireEvent.click(checkboxes[0]);
+
+  expect(screen.getByText('On 1 selected items.')).toBeInTheDocument();
+
+  // simulate a store refresh: every network object is replaced with a brand new reference
+  networksListInfo.set(get(networksListInfo).map(network => ({ ...network })));
+  await tick();
+
+  expect(screen.getByText('On 1 selected items.')).toBeInTheDocument();
+  const checkboxesAfterRefresh = screen.getAllByRole('checkbox', { name: 'Toggle network' });
+  expect(checkboxesAfterRefresh[0]).toBeChecked();
+});
+
+test('Expect a network to remain findable when searching by a label value or a subnet', async () => {
+  const networkWithLabelsAndSubnet: NetworkInspectInfo = {
+    ...network1,
+    Labels: { app: 'search-label-value' },
+    IPAM: { Config: [{ Subnet: '10.99.0.0/16' }] },
+  };
+
+  vi.mocked(window.getProviderInfos).mockResolvedValue([providerInfoMock]);
+  vi.mocked(window.listNetworks).mockResolvedValue([networkWithLabelsAndSubnet, network2]);
+
+  window.dispatchEvent(new CustomEvent('extensions-already-started'));
+  window.dispatchEvent(new CustomEvent('provider-lifecycle-change'));
+
+  await waitFor(
+    () => {
+      expect(get(providerInfos)).not.toHaveLength(0);
+      expect(get(networksListInfo)).not.toHaveLength(0);
+    },
+    { timeout: 2000 },
+  );
+
+  render(NetworksList);
+  await tick();
+
+  searchPattern.set('search-label-value');
+  await tick();
+  expect(screen.getByText('Network 1')).toBeInTheDocument();
+  expect(screen.queryByText('Network 2')).not.toBeInTheDocument();
+
+  searchPattern.set('10.99.0.0/16');
+  await tick();
+  expect(screen.getByText('Network 1')).toBeInTheDocument();
+  expect(screen.queryByText('Network 2')).not.toBeInTheDocument();
+});
+
+test('Expect toggling a row selection to leave the object inside networksListInfo unchanged', async () => {
+  await init();
+
+  const checkboxes = screen.getAllByRole('checkbox', { name: 'Toggle network' });
+  await fireEvent.click(checkboxes[0]);
+  expect(checkboxes[0]).toBeChecked();
+
+  // force filtered.subscribe to run again, exercising the carry-forward path that
+  // would write the row's selected state onto a shared (uncloned) store object
+  networksListInfo.set(get(networksListInfo).map(network => ({ ...network })));
+  await tick();
+
+  const storedNetwork1 = get(networksListInfo).find(network => network.id === network1.Id);
+  expect(storedNetwork1?.selected).toBe(false);
+});
+
+test('Expect a per-row delete through the Actions column to leave the row status untouched', async () => {
+  await init();
+
+  vi.mocked(window.showMessageBox).mockResolvedValue({ response: 'Delete' });
+  let release: () => void = (): void => {};
+  vi.mocked(window.removeNetwork).mockReturnValue(
+    new Promise<void>(resolve => {
+      release = resolve;
+    }),
+  );
+
+  const deleteButtons = screen.getAllByRole('button', { name: 'Delete Network' });
+  // network1 (unused) is the enabled delete button
+  await fireEvent.click(deleteButtons[0]);
+
+  await waitFor(() => expect(window.removeNetwork).toHaveBeenCalled());
+  await tick();
+
+  // if the status write were still live, this same button would now be
+  // disabled ('DELETING' !== 'UNUSED')
+  const deleteButtonsAfterClick = screen.getAllByRole('button', { name: 'Delete Network' });
+  expect(deleteButtonsAfterClick[0]).not.toBeDisabled();
+
+  release();
+});

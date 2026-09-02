@@ -60,6 +60,13 @@ test.each([
     {
       Name: 'network1',
       Id: 'network1',
+      Driver: 'bridge',
+      Created: '2023-01-01T00:00:00Z',
+      Scope: 'local',
+      EnableIPv6: false,
+      engineId: 'engine1',
+      engineName: 'Podman',
+      engineType: 'podman',
     } as unknown as NetworkInspectInfo,
   ]);
 
@@ -72,6 +79,51 @@ test.each([
     expect(vi.mocked(window.listNetworks).mock.calls.length).not.equal(0);
     const networkListResult = get(networksListInfo);
     expect(networkListResult).toHaveLength(1);
-    expect(networkListResult[0].Id).toEqual('network1');
+    expect(networkListResult[0].id).toEqual('network1');
+  });
+});
+
+test('store holds converted NetworkInfoUI objects with labels and subnets', async () => {
+  // fast delays (10 & 10ms)
+  networksEventStore.setupWithDebounce(10, 10);
+
+  // empty list
+  vi.mocked(window.listNetworks).mockResolvedValue([]);
+
+  // mark as ready to receive updates
+  window.dispatchEvent(new CustomEvent('extensions-already-started'));
+
+  // clear mock calls
+  vi.mocked(window.listNetworks).mockClear();
+
+  vi.mocked(window.listNetworks).mockResolvedValue([
+    {
+      Name: 'network1',
+      Id: 'network1',
+      Driver: 'bridge',
+      Created: '2023-01-01T00:00:00Z',
+      Scope: 'local',
+      EnableIPv6: false,
+      engineId: 'engine1',
+      engineName: 'Podman',
+      engineType: 'podman',
+      Labels: { env: 'production' },
+      IPAM: {
+        Config: [{ Subnet: '172.20.0.0/16' }],
+      },
+    } as unknown as NetworkInspectInfo,
+  ]);
+
+  // send event
+  const callback = callbacks.get('network-event');
+  assert(callback);
+  await callback();
+
+  await vi.waitFor(() => {
+    expect(vi.mocked(window.listNetworks).mock.calls.length).not.equal(0);
+    const networkListResult = get(networksListInfo);
+    expect(networkListResult).toHaveLength(1);
+    expect(networkListResult[0].labels).toEqual({ env: 'production' });
+    expect(networkListResult[0].subnets).toEqual(['172.20.0.0/16']);
   });
 });

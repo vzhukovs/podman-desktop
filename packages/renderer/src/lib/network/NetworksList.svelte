@@ -3,6 +3,8 @@ import { faPlusCircle, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { NavigationPage } from '@podman-desktop/core-api';
 import { Button, FilteredEmptyScreen, NavPage, Table, TableColumn, TableRow } from '@podman-desktop/ui-svelte';
 import { ContainerIcon } from '@podman-desktop/ui-svelte/icons';
+import { onDestroy, onMount } from 'svelte';
+import type { Unsubscriber } from 'svelte/store';
 
 import { withBulkConfirmation } from '/@/lib/actions/BulkActions';
 import NoContainerEngineEmptyScreen from '/@/lib/image/NoContainerEngineEmptyScreen.svelte';
@@ -15,7 +17,6 @@ import { providerInfos } from '/@/stores/providers';
 import NetworkColumnDriver from './columns/NetworkColumnDriver.svelte';
 import NetworkColumnId from './columns/NetworkColumnId.svelte';
 import NetworkColumnName from './columns/NetworkColumnName.svelte';
-import { NetworkUtils } from './network-utils';
 import NetworkActions from './NetworkActions.svelte';
 import NetworkEmptyScreen from './NetworkEmptyScreen.svelte';
 import type { NetworkInfoUI } from './NetworkInfoUI';
@@ -30,11 +31,34 @@ $effect(() => {
   $searchPattern = searchTerm;
 });
 
-let networkUtils = new NetworkUtils();
-
 let selectedEnvironment = $state('');
 
-let networks: NetworkInfoUI[] = $derived($filtered.map(network => networkUtils.toNetworkInfoUI(network)));
+let networks: NetworkInfoUI[] = $state([]);
+
+let networksUnsubscribe: Unsubscriber;
+onMount(async () => {
+  networksUnsubscribe = filtered.subscribe(value => {
+    const computedNetworks = value.map(network => ({ ...network }));
+
+    // update selected items based on current selected items
+    computedNetworks.forEach(network => {
+      const matchingNetwork = networks.find(
+        currentNetwork => currentNetwork.id === network.id && currentNetwork.engineId === network.engineId,
+      );
+      if (matchingNetwork) {
+        network.selected = matchingNetwork.selected;
+      }
+    });
+    networks = computedNetworks;
+  });
+});
+
+onDestroy(() => {
+  // unsubscribe from the store
+  if (networksUnsubscribe) {
+    networksUnsubscribe();
+  }
+});
 
 // Filter networks by selected environment
 let filteredNetworks = $derived.by(() => {
@@ -64,13 +88,10 @@ async function deleteSelectedNetworks(): Promise<void> {
 
   await Promise.all(
     selectedNetworks.map(async network => {
-      const oldStatus = network.status;
       try {
-        network.status = 'DELETING';
         await window.removeNetwork(network.engineId, network.id);
       } catch (error) {
         console.error(`error while removing network ${network.name}`, error);
-        network.status = oldStatus;
       }
     }),
   );

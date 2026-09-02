@@ -40,6 +40,9 @@ const networkInfoUI: NetworkInfoUI = {
   status: 'USED',
   ipv6_enabled: false,
   containers: [{ id: 'container1', name: 'Container 1' }],
+  labels: {},
+  options: {},
+  subnets: [],
 };
 
 const network: NetworkInspectInfo = {
