@@ -485,14 +485,78 @@ test('Expect toggling a row selection to leave the object inside networksListInf
   expect(storedNetwork1?.selected).toBe(false);
 });
 
-test('Expect a per-row delete through the Actions column to leave the row status untouched', async () => {
+test('Expect selection to survive a network being filtered out and back in by search', async () => {
+  await init();
+
+  const checkboxes = screen.getAllByRole('checkbox', { name: 'Toggle network' });
+  await fireEvent.click(checkboxes[0]);
+
+  expect(screen.getByText('On 1 selected items.')).toBeInTheDocument();
+
+  // filter it out
+  searchPattern.set('Network 2');
+  await tick();
+  expect(screen.queryByText('Network 1')).not.toBeInTheDocument();
+
+  // clear the search: the previously selected network comes back into view
+  searchPattern.set('');
+  await tick();
+
+  expect(screen.getByText('On 1 selected items.')).toBeInTheDocument();
+  const checkboxesAfterClear = screen.getAllByRole('checkbox', { name: 'Toggle network' });
+  expect(checkboxesAfterClear[0]).toBeChecked();
+});
+
+test('Expect a bulk delete to mark the selected network DELETING in the store, and a failing delete to restore the previous status and record actionError', async () => {
+  await init();
+
+  const checkboxes = screen.getAllByRole('checkbox', { name: 'Toggle network' });
+  await fireEvent.click(checkboxes[0]);
+
+  expect(screen.getByText('On 1 selected items.')).toBeInTheDocument();
+
+  // skip the bulk confirmation dialog
+  vi.mocked(window.getConfigurationValue).mockResolvedValue(false);
+
+  let rejectRemoval: (reason?: unknown) => void = (): void => {};
+  vi.mocked(window.removeNetwork).mockReturnValue(
+    new Promise<void>((_resolve, reject) => {
+      rejectRemoval = reject;
+    }),
+  );
+
+  const deleteButton = screen.getByRole('button', { name: 'Delete 1 selected items' });
+  await fireEvent.click(deleteButton);
+
+  await waitFor(() => expect(window.removeNetwork).toHaveBeenCalled());
+
+  await waitFor(() => {
+    const stored = get(networksListInfo).find(
+      network => network.id === network1.Id && network.engineId === network1.engineId,
+    );
+    expect(stored?.status).toBe('DELETING');
+    expect(stored?.actionInProgress).toBe(true);
+  });
+
+  rejectRemoval(new Error('network removal failed'));
+
+  await waitFor(() => {
+    const stored = get(networksListInfo).find(
+      network => network.id === network1.Id && network.engineId === network1.engineId,
+    );
+    expect(stored?.status).toBe('UNUSED');
+    expect(stored?.actionError).toBe('network removal failed');
+  });
+});
+
+test('Expect a per-row delete through the Actions column to disable the row while in progress, and restore it with actionError recorded on failure', async () => {
   await init();
 
   vi.mocked(window.showMessageBox).mockResolvedValue({ response: 'Delete' });
-  let release: () => void = (): void => {};
+  let reject: (reason?: unknown) => void = (): void => {};
   vi.mocked(window.removeNetwork).mockReturnValue(
-    new Promise<void>(resolve => {
-      release = resolve;
+    new Promise<void>((_resolve, rejectFn) => {
+      reject = rejectFn;
     }),
   );
 
@@ -501,12 +565,25 @@ test('Expect a per-row delete through the Actions column to leave the row status
   await fireEvent.click(deleteButtons[0]);
 
   await waitFor(() => expect(window.removeNetwork).toHaveBeenCalled());
-  await tick();
 
-  // if the status write were still live, this same button would now be
-  // disabled ('DELETING' !== 'UNUSED')
-  const deleteButtonsAfterClick = screen.getAllByRole('button', { name: 'Delete Network' });
-  expect(deleteButtonsAfterClick[0]).not.toBeDisabled();
+  // the intermediate DELETING status is now live: the row becomes disabled while the
+  // delete is in progress ('DELETING' !== 'UNUSED')
+  await waitFor(() => {
+    const deleteButtonsInProgress = screen.getAllByRole('button', { name: 'Delete Network' });
+    expect(deleteButtonsInProgress[0]).toBeDisabled();
+  });
 
-  release();
+  reject(new Error('boom'));
+
+  // on failure the previous status is restored, re-enabling the row, and actionError is recorded
+  await waitFor(() => {
+    const deleteButtonsAfterFailure = screen.getAllByRole('button', { name: 'Delete Network' });
+    expect(deleteButtonsAfterFailure[0]).not.toBeDisabled();
+  });
+
+  const stored = get(networksListInfo).find(
+    network => network.id === network1.Id && network.engineId === network1.engineId,
+  );
+  expect(stored?.status).toBe('UNUSED');
+  expect(stored?.actionError).toBe('boom');
 });

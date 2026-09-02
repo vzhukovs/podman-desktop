@@ -61,6 +61,34 @@ const listNetworks = async (): Promise<NetworkInfoUI[]> => {
   return (await window.listNetworks()).map(network => networkUtils.toNetworkInfoUI(network));
 };
 
+export function setNetworkStatus(engineId: string, networkId: string, status: string): void {
+  networksListInfo.update(networks =>
+    networks.map(network =>
+      network.id === networkId && network.engineId === engineId
+        ? { ...network, status, actionInProgress: true, actionError: '' }
+        : network,
+    ),
+  );
+}
+
+export function clearNetworkActionInProgress(engineId: string, networkId: string): void {
+  networksListInfo.update(networks =>
+    networks.map(network =>
+      network.id === networkId && network.engineId === engineId ? { ...network, actionInProgress: false } : network,
+    ),
+  );
+}
+
+export function setNetworkActionError(engineId: string, networkId: string, error: string): void {
+  networksListInfo.update(networks =>
+    networks.map(network =>
+      network.id === networkId && network.engineId === engineId
+        ? { ...network, actionError: error, actionInProgress: false }
+        : network,
+    ),
+  );
+}
+
 export const networksEventStore = new EventStore<NetworkInfoUI[]>(
   'networks',
   networksListInfo,

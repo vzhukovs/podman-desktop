@@ -4,6 +4,7 @@ import { NavigationPage } from '@podman-desktop/core-api';
 import { Button, FilteredEmptyScreen, NavPage, Table, TableColumn, TableRow } from '@podman-desktop/ui-svelte';
 import { ContainerIcon } from '@podman-desktop/ui-svelte/icons';
 import { onDestroy, onMount } from 'svelte';
+import { SvelteSet } from 'svelte/reactivity';
 import type { Unsubscriber } from 'svelte/store';
 
 import { withBulkConfirmation } from '/@/lib/actions/BulkActions';
@@ -11,7 +12,13 @@ import NoContainerEngineEmptyScreen from '/@/lib/image/NoContainerEngineEmptyScr
 import ContainerEngineEnvironmentColumn from '/@/lib/table/columns/ContainerEngineEnvironmentColumn.svelte';
 import EnvironmentDropdown from '/@/lib/ui/EnvironmentDropdown.svelte';
 import { handleNavigation } from '/@/navigation';
-import { filtered, searchPattern } from '/@/stores/networks';
+import {
+  clearNetworkActionInProgress,
+  filtered,
+  searchPattern,
+  setNetworkActionError,
+  setNetworkStatus,
+} from '/@/stores/networks';
 import { providerInfos } from '/@/stores/providers';
 
 import NetworkColumnDriver from './columns/NetworkColumnDriver.svelte';
@@ -35,21 +42,15 @@ let selectedEnvironment = $state('');
 
 let networks: NetworkInfoUI[] = $state([]);
 
+// selected rows, keyed by engineId + id, independently of the filtered networks array so
+// that selection survives a network being filtered out and back in
+let selectedKeys = new SvelteSet<string>();
+
 let networksUnsubscribe: Unsubscriber;
 onMount(async () => {
   networksUnsubscribe = filtered.subscribe(value => {
-    const computedNetworks = value.map(network => ({ ...network }));
-
-    // update selected items based on current selected items
-    computedNetworks.forEach(network => {
-      const matchingNetwork = networks.find(
-        currentNetwork => currentNetwork.id === network.id && currentNetwork.engineId === network.engineId,
-      );
-      if (matchingNetwork) {
-        network.selected = matchingNetwork.selected;
-      }
-    });
-    networks = computedNetworks;
+    // update selected items based on the selected keys collection
+    networks = value.map(network => ({ ...network, selected: selectedKeys.has(key(network)) }));
   });
 });
 
@@ -58,6 +59,19 @@ onDestroy(() => {
   if (networksUnsubscribe) {
     networksUnsubscribe();
   }
+});
+
+// Table reports selection back only by mutating row.selected (no callback), so project
+// those mutations onto the selectedKeys collection, which is the source of truth.
+$effect(() => {
+  networks.forEach(network => {
+    const networkKey = key(network);
+    if (network.selected) {
+      selectedKeys.add(networkKey);
+    } else {
+      selectedKeys.delete(networkKey);
+    }
+  });
 });
 
 // Filter networks by selected environment
@@ -88,9 +102,14 @@ async function deleteSelectedNetworks(): Promise<void> {
 
   await Promise.all(
     selectedNetworks.map(async network => {
+      const previousStatus = network.status;
+      setNetworkStatus(network.engineId, network.id, 'DELETING');
       try {
         await window.removeNetwork(network.engineId, network.id);
+        clearNetworkActionInProgress(network.engineId, network.id);
       } catch (error) {
+        setNetworkStatus(network.engineId, network.id, previousStatus);
+        setNetworkActionError(network.engineId, network.id, error instanceof Error ? error.message : String(error));
         console.error(`error while removing network ${network.name}`, error);
       }
     }),

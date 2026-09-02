@@ -20,7 +20,15 @@ import type { NetworkInspectInfo } from '@podman-desktop/core-api';
 import { get } from 'svelte/store';
 import { assert, beforeEach, expect, test, vi } from 'vitest';
 
-import { networksEventStore, networksListInfo } from './networks';
+import type { NetworkInfoUI } from '/@/lib/network/NetworkInfoUI';
+
+import {
+  clearNetworkActionInProgress,
+  networksEventStore,
+  networksListInfo,
+  setNetworkActionError,
+  setNetworkStatus,
+} from './networks';
 
 const callbacks = new Map<string, (data?: unknown) => void | Promise<void>>();
 
@@ -126,4 +134,85 @@ test('store holds converted NetworkInfoUI objects with labels and subnets', asyn
     expect(networkListResult[0].labels).toEqual({ env: 'production' });
     expect(networkListResult[0].subnets).toEqual(['172.20.0.0/16']);
   });
+});
+
+test('setNetworkStatus updates the status, sets actionInProgress and clears actionError', () => {
+  const network1 = {
+    id: 'network1',
+    engineId: 'engine1',
+    status: 'UNUSED',
+    selected: true,
+    actionInProgress: false,
+    actionError: 'previous error',
+  } as NetworkInfoUI;
+  const network2 = { id: 'network2', engineId: 'engine1', status: 'USED', selected: false } as NetworkInfoUI;
+  networksListInfo.set([network1, network2]);
+
+  setNetworkStatus('engine1', 'network1', 'DELETING');
+
+  const result = get(networksListInfo);
+  expect(result[0]).not.toBe(network1);
+  expect(result[0].status).toBe('DELETING');
+  expect(result[0].actionInProgress).toBe(true);
+  expect(result[0].actionError).toBe('');
+  expect(result[0].selected).toBe(true);
+  expect(result[1]).toBe(network2);
+});
+
+test('setNetworkStatus does not update a network with a matching id but a different engineId', () => {
+  const network1 = { id: 'network1', engineId: 'engine1', status: 'UNUSED', selected: false } as NetworkInfoUI;
+  const network2 = { id: 'network1', engineId: 'engine2', status: 'UNUSED', selected: false } as NetworkInfoUI;
+  networksListInfo.set([network1, network2]);
+
+  setNetworkStatus('engine1', 'network1', 'DELETING');
+
+  const result = get(networksListInfo);
+  expect(result[0].status).toBe('DELETING');
+  expect(result[1]).toBe(network2);
+  expect(result[1].status).toBe('UNUSED');
+});
+
+test('clearNetworkActionInProgress clears the actionInProgress flag without touching status', () => {
+  const network1 = {
+    id: 'network1',
+    engineId: 'engine1',
+    status: 'DELETING',
+    selected: true,
+    actionInProgress: true,
+    actionError: '',
+  } as NetworkInfoUI;
+  const network2 = { id: 'network2', engineId: 'engine1', status: 'USED', selected: false } as NetworkInfoUI;
+  networksListInfo.set([network1, network2]);
+
+  clearNetworkActionInProgress('engine1', 'network1');
+
+  const result = get(networksListInfo);
+  expect(result[0]).not.toBe(network1);
+  expect(result[0].actionInProgress).toBe(false);
+  expect(result[0].status).toBe('DELETING');
+  expect(result[0].selected).toBe(true);
+  expect(result[1]).toBe(network2);
+});
+
+test('setNetworkActionError sets the error and clears actionInProgress but leaves status untouched', () => {
+  const network1 = {
+    id: 'network1',
+    engineId: 'engine1',
+    status: 'DELETING',
+    selected: true,
+    actionInProgress: true,
+    actionError: '',
+  } as NetworkInfoUI;
+  const network2 = { id: 'network2', engineId: 'engine1', status: 'USED', selected: false } as NetworkInfoUI;
+  networksListInfo.set([network1, network2]);
+
+  setNetworkActionError('engine1', 'network1', 'something went wrong');
+
+  const result = get(networksListInfo);
+  expect(result[0]).not.toBe(network1);
+  expect(result[0].actionError).toBe('something went wrong');
+  expect(result[0].actionInProgress).toBe(false);
+  expect(result[0].status).toBe('DELETING');
+  expect(result[0].selected).toBe(true);
+  expect(result[1]).toBe(network2);
 });

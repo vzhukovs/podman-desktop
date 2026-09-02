@@ -9,6 +9,7 @@ import { NavigationPage } from '@podman-desktop/core-api';
 import { Button, Checkbox, Dropdown, ErrorMessage, Input } from '@podman-desktop/ui-svelte';
 import { Icon } from '@podman-desktop/ui-svelte/icons';
 import { onMount } from 'svelte';
+import type { Unsubscriber } from 'svelte/store';
 import { router } from 'tinro';
 
 import ContainerConnectionDropdown from '/@/lib/forms/ContainerConnectionDropdown.svelte';
@@ -134,18 +135,32 @@ async function createNetwork(): Promise<void> {
  */
 async function waitForNetworkInStore(networkId: string, engineId: string): Promise<void> {
   return new Promise<void>(resolve => {
+    // The store contract invokes a new subscriber synchronously with the current value
+    // before `subscribe` returns. Declare `unsubscribe` up front (instead of via `const`
+    // assigned from the subscribe call) so a synchronous match cannot read the binding
+    // before it exists.
+    let unsubscribe: Unsubscriber | undefined;
+    let matchedSynchronously = false;
+
     const timeout = setTimeout(() => {
-      unsubscribe();
+      unsubscribe?.();
       resolve();
     }, 10000);
 
-    const unsubscribe = networksListInfo.subscribe(networks => {
+    unsubscribe = networksListInfo.subscribe(networks => {
       if (networks.some(network => network.id === networkId && network.engineId === engineId)) {
+        matchedSynchronously = unsubscribe === undefined;
         clearTimeout(timeout);
-        unsubscribe();
+        unsubscribe?.();
         resolve();
       }
     });
+
+    // The store already contained the network when we subscribed: the callback above ran
+    // synchronously while `unsubscribe` was still undefined, so tear down the subscription now.
+    if (matchedSynchronously) {
+      unsubscribe();
+    }
   });
 }
 

@@ -316,6 +316,52 @@ test('Expect automatic routing to network details after successful network creat
   );
 });
 
+test('Expect automatic routing to network details when the network is already in the store (regression)', async () => {
+  const gotoSpy = vi.spyOn(router, 'goto');
+  const networkId = 'network123';
+  const engineId = 'engine1';
+  vi.mocked(window.createNetwork).mockResolvedValue({ Id: networkId, engineId });
+
+  // Pre-populate the store with the network BEFORE creation is triggered, simulating the store
+  // having already refreshed between createNetwork resolving and waitForNetworkInStore
+  // subscribing. A subscriber added to a Svelte store is invoked synchronously with the
+  // current value, so this exercises the synchronous-match path.
+  const network: NetworkInfoUI = {
+    id: networkId,
+    shortId: networkId.slice(0, 12),
+    name: 'my-test-network',
+    driver: 'bridge',
+    created: '',
+    engineId,
+    engineName: 'Podman',
+    engineType: 'podman',
+    selected: false,
+    status: 'UNUSED',
+    containers: [],
+    ipv6_enabled: false,
+    labels: {},
+    options: {},
+    subnets: [],
+  };
+  networksListInfo.set([network]);
+
+  renderCreate();
+
+  const networkNameInput = screen.getByRole('textbox', { name: 'Name *' });
+  await userEvent.type(networkNameInput, 'my-test-network');
+
+  const createButton = screen.getByRole('button', { name: 'Create' });
+  await userEvent.click(createButton);
+
+  await waitFor(() => {
+    // Should route to the network details page without throwing a ReferenceError
+    expect(gotoSpy).toHaveBeenCalledWith(`/networks/my-test-network/${engineId}/summary`);
+  });
+
+  // No error should have been surfaced to the user
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
 test('Expect to switch to Advanced tab and see advanced options', async () => {
   renderCreate();
 
