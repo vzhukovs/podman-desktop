@@ -68,13 +68,6 @@ test.each([
     {
       Name: 'network1',
       Id: 'network1',
-      Driver: 'bridge',
-      Created: '2023-01-01T00:00:00Z',
-      Scope: 'local',
-      EnableIPv6: false,
-      engineId: 'engine1',
-      engineName: 'Podman',
-      engineType: 'podman',
     } as unknown as NetworkInspectInfo,
   ]);
 

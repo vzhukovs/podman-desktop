@@ -102,13 +102,13 @@ async function deleteSelectedNetworks(): Promise<void> {
 
   await Promise.all(
     selectedNetworks.map(async network => {
-      const previousStatus = network.status;
-      setNetworkStatus(network.engineId, network.id, 'DELETING');
+      const oldStatus = network.status;
       try {
+        setNetworkStatus(network.engineId, network.id, 'DELETING');
         await window.removeNetwork(network.engineId, network.id);
         clearNetworkActionInProgress(network.engineId, network.id);
       } catch (error) {
-        setNetworkStatus(network.engineId, network.id, previousStatus);
+        setNetworkStatus(network.engineId, network.id, oldStatus);
         setNetworkActionError(network.engineId, network.id, error instanceof Error ? error.message : String(error));
         console.error(`error while removing network ${network.name}`, error);
       }

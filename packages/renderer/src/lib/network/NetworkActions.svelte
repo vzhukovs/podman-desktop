@@ -43,14 +43,14 @@ async function removeNetwork(): Promise<void> {
   // store, and on the details page `object` is derived from it and becomes undefined
   // before the finally block runs.
   const { engineId, id, name } = object;
-  const previousStatus = object.status;
+  const oldStatus = object.status;
 
   inProgress(engineId, id, 'DELETING');
   try {
     await window.removeNetwork(engineId, id);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    inProgress(engineId, id, previousStatus);
+    inProgress(engineId, id, oldStatus);
     handleError(engineId, id, message);
     await window.showMessageBox({
       title: 'Delete Network Failed',
