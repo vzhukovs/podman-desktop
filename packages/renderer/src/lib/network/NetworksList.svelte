@@ -3,9 +3,6 @@ import { faPlusCircle, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { NavigationPage } from '@podman-desktop/core-api';
 import { Button, FilteredEmptyScreen, NavPage, Table, TableColumn, TableRow } from '@podman-desktop/ui-svelte';
 import { ContainerIcon } from '@podman-desktop/ui-svelte/icons';
-import { onDestroy, onMount } from 'svelte';
-import { SvelteSet } from 'svelte/reactivity';
-import type { Unsubscriber } from 'svelte/store';
 
 import { withBulkConfirmation } from '/@/lib/actions/BulkActions';
 import NoContainerEngineEmptyScreen from '/@/lib/image/NoContainerEngineEmptyScreen.svelte';
@@ -40,39 +37,9 @@ $effect(() => {
 
 let selectedEnvironment = $state('');
 
-let networks: NetworkInfoUI[] = $state([]);
-
-// selected rows, keyed by engineId + id, independently of the filtered networks array so
-// that selection survives a network being filtered out and back in
-let selectedKeys = new SvelteSet<string>();
-
-let networksUnsubscribe: Unsubscriber;
-onMount(async () => {
-  networksUnsubscribe = filtered.subscribe(value => {
-    // update selected items based on the selected keys collection
-    networks = value.map(network => ({ ...network, selected: selectedKeys.has(key(network)) }));
-  });
-});
-
-onDestroy(() => {
-  // unsubscribe from the store
-  if (networksUnsubscribe) {
-    networksUnsubscribe();
-  }
-});
-
-// Table reports selection back only by mutating row.selected (no callback), so project
-// those mutations onto the selectedKeys collection, which is the source of truth.
-$effect(() => {
-  networks.forEach(network => {
-    const networkKey = key(network);
-    if (network.selected) {
-      selectedKeys.add(networkKey);
-    } else {
-      selectedKeys.delete(networkKey);
-    }
-  });
-});
+// Each store update intentionally creates transient table rows. Table owns `selected`,
+// so a refresh or a change of filter clears it, exactly as it did before this migration.
+let networks: NetworkInfoUI[] = $derived($filtered.map(network => ({ ...network, selected: false })));
 
 // Filter networks by selected environment
 let filteredNetworks = $derived.by(() => {
