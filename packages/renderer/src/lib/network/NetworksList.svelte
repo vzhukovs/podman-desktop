@@ -9,13 +9,7 @@ import NoContainerEngineEmptyScreen from '/@/lib/image/NoContainerEngineEmptyScr
 import ContainerEngineEnvironmentColumn from '/@/lib/table/columns/ContainerEngineEnvironmentColumn.svelte';
 import EnvironmentDropdown from '/@/lib/ui/EnvironmentDropdown.svelte';
 import { handleNavigation } from '/@/navigation';
-import {
-  clearNetworkActionInProgress,
-  filtered,
-  searchPattern,
-  setNetworkActionError,
-  setNetworkStatus,
-} from '/@/stores/networks';
+import { clearNetworkActionInProgress, filtered, searchPattern, setNetworkStatus } from '/@/stores/networks';
 import { providerInfos } from '/@/stores/providers';
 
 import NetworkColumnDriver from './columns/NetworkColumnDriver.svelte';
@@ -37,8 +31,6 @@ $effect(() => {
 
 let selectedEnvironment = $state('');
 
-// Each store update intentionally creates transient table rows. Table owns `selected`,
-// so a refresh or a change of filter clears it, exactly as it did before this migration.
 let networks: NetworkInfoUI[] = $derived($filtered.map(network => ({ ...network, selected: false })));
 
 // Filter networks by selected environment
@@ -73,11 +65,12 @@ async function deleteSelectedNetworks(): Promise<void> {
       try {
         setNetworkStatus(network.engineId, network.id, 'DELETING');
         await window.removeNetwork(network.engineId, network.id);
-        clearNetworkActionInProgress(network.engineId, network.id);
       } catch (error) {
-        setNetworkStatus(network.engineId, network.id, oldStatus);
-        setNetworkActionError(network.engineId, network.id, error instanceof Error ? error.message : String(error));
         console.error(`error while removing network ${network.name}`, error);
+        setNetworkStatus(network.engineId, network.id, oldStatus);
+        // setNetworkStatus raises actionInProgress; nothing else lowers it until the
+        // next network event, which a failed delete does not produce
+        clearNetworkActionInProgress(network.engineId, network.id);
       }
     }),
   );

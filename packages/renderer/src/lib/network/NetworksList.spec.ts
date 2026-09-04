@@ -470,7 +470,7 @@ test('Expect toggling a row selection to leave the object inside networksListInf
   });
 });
 
-test('Expect a bulk delete to mark the selected network DELETING in the store, and a failing delete to restore the previous status and record actionError', async () => {
+test('Expect a bulk delete to mark the selected network DELETING in the store, and a failing delete to restore the previous status', async () => {
   await init();
 
   const checkboxes = screen.getAllByRole('checkbox', { name: 'Toggle network' });
@@ -508,11 +508,10 @@ test('Expect a bulk delete to mark the selected network DELETING in the store, a
       network => network.id === network1.Id && network.engineId === network1.engineId,
     );
     expect(stored?.status).toBe('UNUSED');
-    expect(stored?.actionError).toBe('network removal failed');
   });
 });
 
-test('Expect a per-row delete through the Actions column to disable the row while in progress, and restore it with actionError recorded on failure', async () => {
+test('Expect a per-row delete through the Actions column to disable the row while in progress, and restore it on failure', async () => {
   await init();
 
   vi.mocked(window.showMessageBox).mockResolvedValue({ response: 'Delete' });
@@ -538,7 +537,7 @@ test('Expect a per-row delete through the Actions column to disable the row whil
 
   reject(new Error('boom'));
 
-  // on failure the previous status is restored, re-enabling the row, and actionError is recorded
+  // on failure the previous status is restored, re-enabling the row
   await waitFor(() => {
     const deleteButtonsAfterFailure = screen.getAllByRole('button', { name: 'Delete Network' });
     expect(deleteButtonsAfterFailure[0]).not.toBeDisabled();
@@ -548,5 +547,4 @@ test('Expect a per-row delete through the Actions column to disable the row whil
     network => network.id === network1.Id && network.engineId === network1.engineId,
   );
   expect(stored?.status).toBe('UNUSED');
-  expect(stored?.actionError).toBe('boom');
 });

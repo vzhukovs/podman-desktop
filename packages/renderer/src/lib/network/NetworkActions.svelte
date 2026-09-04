@@ -8,7 +8,7 @@ import ContributionActions from '/@/lib/actions/ContributionActions.svelte';
 import { withConfirmation } from '/@/lib/dialogs/messagebox-utils';
 import FlatMenu from '/@/lib/ui/FlatMenu.svelte';
 import ListItemButtonIcon from '/@/lib/ui/ListItemButtonIcon.svelte';
-import { clearNetworkActionInProgress, setNetworkActionError, setNetworkStatus } from '/@/stores/networks';
+import { clearNetworkActionInProgress, setNetworkStatus } from '/@/stores/networks';
 
 import type { NetworkInfoUI } from './NetworkInfoUI';
 import UpdateNetworkDialog from './UpdateNetworkDialog.svelte';
@@ -34,10 +34,6 @@ function inProgress(engineId: string, networkId: string, state?: string): void {
   }
 }
 
-function handleError(engineId: string, networkId: string, errorMessage: string): void {
-  setNetworkActionError(engineId, networkId, errorMessage);
-}
-
 async function removeNetwork(): Promise<void> {
   // Capture identity before awaiting: a successful delete removes the network from the
   // store, and on the details page `object` is derived from it and becomes undefined
@@ -51,7 +47,6 @@ async function removeNetwork(): Promise<void> {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     inProgress(engineId, id, oldStatus);
-    handleError(engineId, id, message);
     await window.showMessageBox({
       title: 'Delete Network Failed',
       message: `Error while deleting network ${name}: ${message}`,

@@ -65,7 +65,7 @@ export function setNetworkStatus(engineId: string, networkId: string, status: st
   networksListInfo.update(networks =>
     networks.map(network =>
       network.id === networkId && network.engineId === engineId
-        ? { ...network, status, actionInProgress: true, actionError: '' }
+        ? { ...network, status, actionInProgress: true }
         : network,
     ),
   );
@@ -75,16 +75,6 @@ export function clearNetworkActionInProgress(engineId: string, networkId: string
   networksListInfo.update(networks =>
     networks.map(network =>
       network.id === networkId && network.engineId === engineId ? { ...network, actionInProgress: false } : network,
-    ),
-  );
-}
-
-export function setNetworkActionError(engineId: string, networkId: string, error: string): void {
-  networksListInfo.update(networks =>
-    networks.map(network =>
-      network.id === networkId && network.engineId === engineId
-        ? { ...network, actionError: error, actionInProgress: false }
-        : network,
     ),
   );
 }

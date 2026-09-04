@@ -22,13 +22,7 @@ import { assert, beforeEach, expect, test, vi } from 'vitest';
 
 import type { NetworkInfoUI } from '/@/lib/network/NetworkInfoUI';
 
-import {
-  clearNetworkActionInProgress,
-  networksEventStore,
-  networksListInfo,
-  setNetworkActionError,
-  setNetworkStatus,
-} from './networks';
+import { clearNetworkActionInProgress, networksEventStore, networksListInfo, setNetworkStatus } from './networks';
 
 const callbacks = new Map<string, (data?: unknown) => void | Promise<void>>();
 
@@ -129,14 +123,13 @@ test('store holds converted NetworkInfoUI objects with labels and subnets', asyn
   });
 });
 
-test('setNetworkStatus updates the status, sets actionInProgress and clears actionError', () => {
+test('setNetworkStatus updates the status and sets actionInProgress', () => {
   const network1 = {
     id: 'network1',
     engineId: 'engine1',
     status: 'UNUSED',
     selected: true,
     actionInProgress: false,
-    actionError: 'previous error',
   } as NetworkInfoUI;
   const network2 = { id: 'network2', engineId: 'engine1', status: 'USED', selected: false } as NetworkInfoUI;
   networksListInfo.set([network1, network2]);
@@ -147,7 +140,6 @@ test('setNetworkStatus updates the status, sets actionInProgress and clears acti
   expect(result[0]).not.toBe(network1);
   expect(result[0].status).toBe('DELETING');
   expect(result[0].actionInProgress).toBe(true);
-  expect(result[0].actionError).toBe('');
   expect(result[0].selected).toBe(true);
   expect(result[1]).toBe(network2);
 });
@@ -172,7 +164,6 @@ test('clearNetworkActionInProgress clears the actionInProgress flag without touc
     status: 'DELETING',
     selected: true,
     actionInProgress: true,
-    actionError: '',
   } as NetworkInfoUI;
   const network2 = { id: 'network2', engineId: 'engine1', status: 'USED', selected: false } as NetworkInfoUI;
   networksListInfo.set([network1, network2]);
@@ -181,29 +172,6 @@ test('clearNetworkActionInProgress clears the actionInProgress flag without touc
 
   const result = get(networksListInfo);
   expect(result[0]).not.toBe(network1);
-  expect(result[0].actionInProgress).toBe(false);
-  expect(result[0].status).toBe('DELETING');
-  expect(result[0].selected).toBe(true);
-  expect(result[1]).toBe(network2);
-});
-
-test('setNetworkActionError sets the error and clears actionInProgress but leaves status untouched', () => {
-  const network1 = {
-    id: 'network1',
-    engineId: 'engine1',
-    status: 'DELETING',
-    selected: true,
-    actionInProgress: true,
-    actionError: '',
-  } as NetworkInfoUI;
-  const network2 = { id: 'network2', engineId: 'engine1', status: 'USED', selected: false } as NetworkInfoUI;
-  networksListInfo.set([network1, network2]);
-
-  setNetworkActionError('engine1', 'network1', 'something went wrong');
-
-  const result = get(networksListInfo);
-  expect(result[0]).not.toBe(network1);
-  expect(result[0].actionError).toBe('something went wrong');
   expect(result[0].actionInProgress).toBe(false);
   expect(result[0].status).toBe('DELETING');
   expect(result[0].selected).toBe(true);
