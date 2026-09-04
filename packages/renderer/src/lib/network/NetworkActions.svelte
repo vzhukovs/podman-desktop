@@ -8,7 +8,7 @@ import ContributionActions from '/@/lib/actions/ContributionActions.svelte';
 import { withConfirmation } from '/@/lib/dialogs/messagebox-utils';
 import FlatMenu from '/@/lib/ui/FlatMenu.svelte';
 import ListItemButtonIcon from '/@/lib/ui/ListItemButtonIcon.svelte';
-import { clearNetworkActionInProgress, setNetworkStatus } from '/@/stores/networks';
+import { setNetworkStatus } from '/@/stores/networks';
 
 import type { NetworkInfoUI } from './NetworkInfoUI';
 import UpdateNetworkDialog from './UpdateNetworkDialog.svelte';
@@ -27,26 +27,19 @@ const MenuComponent = $derived(dropdownMenu ? DropdownMenu : FlatMenu);
 let showUpdateNetworkDialog = $state(false);
 
 async function removeNetwork(): Promise<void> {
-  // Capture identity before awaiting: a successful delete removes the network from the
-  // store, and on the details page `object` is derived from it and becomes undefined
-  // before the finally block runs.
-  const { engineId, id, name } = object;
   const oldStatus = object.status;
+  setNetworkStatus(object.engineId, object.id, 'DELETING');
 
-  setNetworkStatus(engineId, id, 'DELETING');
   try {
-    await window.removeNetwork(engineId, id);
+    await window.removeNetwork(object.engineId, object.id);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    setNetworkStatus(engineId, id, oldStatus);
+    setNetworkStatus(object.engineId, object.id, oldStatus);
     await window.showMessageBox({
       title: 'Delete Network Failed',
-      message: `Error while deleting network ${name}: ${message}`,
+      message: `Error while deleting network ${object.name}: ${error instanceof Error ? error.message : String(error)}`,
       type: 'error',
       buttons: ['Dismiss'],
     });
-  } finally {
-    clearNetworkActionInProgress(engineId, id);
   }
 }
 
@@ -67,7 +60,6 @@ function closeUpdateDialog(): void {
   onClick={(): void => withConfirmation(removeNetwork, `delete network ${object.name}`, { title: 'Delete Network?', variant: 'delete' })}
   icon={faTrash}
   detailed={detailed}
-  inProgress={object.actionInProgress && object.status === 'DELETING'}
   enabled={object.status === 'UNUSED'} />
 
 {#if showUpdateNetworkDialog}

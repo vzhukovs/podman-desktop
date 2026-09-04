@@ -9,7 +9,7 @@ import NoContainerEngineEmptyScreen from '/@/lib/image/NoContainerEngineEmptyScr
 import ContainerEngineEnvironmentColumn from '/@/lib/table/columns/ContainerEngineEnvironmentColumn.svelte';
 import EnvironmentDropdown from '/@/lib/ui/EnvironmentDropdown.svelte';
 import { handleNavigation } from '/@/navigation';
-import { clearNetworkActionInProgress, filtered, searchPattern, setNetworkStatus } from '/@/stores/networks';
+import { filtered, searchPattern, setNetworkStatus } from '/@/stores/networks';
 import { providerInfos } from '/@/stores/providers';
 
 import NetworkColumnDriver from './columns/NetworkColumnDriver.svelte';
@@ -68,9 +68,6 @@ async function deleteSelectedNetworks(): Promise<void> {
       } catch (error) {
         console.error(`error while removing network ${network.name}`, error);
         setNetworkStatus(network.engineId, network.id, oldStatus);
-        // setNetworkStatus raises actionInProgress; nothing else lowers it until the
-        // next network event, which a failed delete does not produce
-        clearNetworkActionInProgress(network.engineId, network.id);
       }
     }),
   );

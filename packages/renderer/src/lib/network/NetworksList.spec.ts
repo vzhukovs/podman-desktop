@@ -498,7 +498,6 @@ test('Expect a bulk delete to mark the selected network DELETING in the store, a
       network => network.id === network1.Id && network.engineId === network1.engineId,
     );
     expect(stored?.status).toBe('DELETING');
-    expect(stored?.actionInProgress).toBe(true);
   });
 
   rejectRemoval(new Error('network removal failed'));

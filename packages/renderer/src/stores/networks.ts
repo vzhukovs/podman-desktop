@@ -64,17 +64,7 @@ const listNetworks = async (): Promise<NetworkInfoUI[]> => {
 export function setNetworkStatus(engineId: string, networkId: string, status: string): void {
   networksListInfo.update(networks =>
     networks.map(network =>
-      network.id === networkId && network.engineId === engineId
-        ? { ...network, status, actionInProgress: true }
-        : network,
-    ),
-  );
-}
-
-export function clearNetworkActionInProgress(engineId: string, networkId: string): void {
-  networksListInfo.update(networks =>
-    networks.map(network =>
-      network.id === networkId && network.engineId === engineId ? { ...network, actionInProgress: false } : network,
+      network.id === networkId && network.engineId === engineId ? { ...network, status } : network,
     ),
   );
 }
