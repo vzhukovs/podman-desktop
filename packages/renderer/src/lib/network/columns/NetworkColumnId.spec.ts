@@ -38,9 +38,6 @@ const network: NetworkInfoUI = {
   status: 'UNUSED',
   containers: [],
   ipv6_enabled: false,
-  labels: {},
-  options: {},
-  subnets: [],
 };
 
 test('Expect simple column styling', async () => {

@@ -39,9 +39,6 @@ const network1: NetworkInfoUI = {
   status: 'UNUSED',
   containers: [],
   ipv6_enabled: false,
-  labels: {},
-  options: {},
-  subnets: [],
 };
 
 const network2: NetworkInfoUI = {
@@ -57,9 +54,6 @@ const network2: NetworkInfoUI = {
   status: 'USED',
   containers: [],
   ipv6_enabled: false,
-  labels: {},
-  options: {},
-  subnets: [],
 };
 
 beforeEach(() => {

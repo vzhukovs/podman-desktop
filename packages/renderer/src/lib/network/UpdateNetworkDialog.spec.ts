@@ -39,9 +39,6 @@ const network: NetworkInfoUI = {
   status: 'USED',
   containers: [],
   ipv6_enabled: false,
-  labels: {},
-  options: {},
-  subnets: [],
 };
 
 const closeDialog = vi.fn();

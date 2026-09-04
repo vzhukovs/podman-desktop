@@ -41,9 +41,6 @@ const network: NetworkInfoUI = {
     { id: 'container1', name: 'Container 1' },
     { id: 'container2', name: 'Container 2' },
   ],
-  labels: {},
-  options: {},
-  subnets: [],
 };
 
 vi.mock(import('tinro'));

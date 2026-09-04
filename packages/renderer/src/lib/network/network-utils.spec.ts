@@ -79,9 +79,6 @@ test('Should expect to have a valid NetworkInfoUI object', async () => {
     status: 'UNUSED',
     ipv6_enabled: false,
     containers: [],
-    labels: {},
-    options: {},
-    subnets: [],
   });
 
   const networkInfo2 = networkUtils.toNetworkInfoUI(network2);
@@ -98,17 +95,14 @@ test('Should expect to have a valid NetworkInfoUI object', async () => {
     status: 'USED',
     ipv6_enabled: false,
     containers: [{ id: 'container1', name: 'Container 1' }],
-    labels: {},
-    options: {},
-    subnets: [],
   });
 });
 
-test('Should default labels, options and subnets to empty when the network carries none', async () => {
+test('Should leave labels, options and subnets undefined when the network carries none', async () => {
   const networkInfo = networkUtils.toNetworkInfoUI(network1);
-  expect(networkInfo.labels).toEqual({});
-  expect(networkInfo.options).toEqual({});
-  expect(networkInfo.subnets).toEqual([]);
+  expect(networkInfo.labels).toBeUndefined();
+  expect(networkInfo.options).toBeUndefined();
+  expect(networkInfo.subnets).toBeUndefined();
 });
 
 test('Should expose labels, options and subnets when the network carries them', async () => {

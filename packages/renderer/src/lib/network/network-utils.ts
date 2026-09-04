@@ -38,11 +38,9 @@ export class NetworkUtils {
       status: Object.keys(networkInspectInfo.Containers ?? {}).length > 0 ? 'USED' : 'UNUSED',
       containers: this.getNetworkContainers(networkInspectInfo),
       ipv6_enabled: networkInspectInfo.EnableIPv6,
-      labels: networkInspectInfo.Labels ?? {},
-      options: networkInspectInfo.Options ?? {},
-      subnets: (networkInspectInfo.IPAM?.Config ?? [])
-        .map(config => config.Subnet)
-        .filter((subnet): subnet is string => subnet !== undefined),
+      labels: networkInspectInfo.Labels,
+      options: networkInspectInfo.Options,
+      subnets: networkInspectInfo.IPAM?.Config?.flatMap(config => config.Subnet ?? []),
     };
   }
 
