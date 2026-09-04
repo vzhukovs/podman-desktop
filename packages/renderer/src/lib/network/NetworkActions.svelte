@@ -26,14 +26,6 @@ const MenuComponent = $derived(dropdownMenu ? DropdownMenu : FlatMenu);
 
 let showUpdateNetworkDialog = $state(false);
 
-function inProgress(engineId: string, networkId: string, state?: string): void {
-  if (state) {
-    setNetworkStatus(engineId, networkId, state);
-  } else {
-    clearNetworkActionInProgress(engineId, networkId);
-  }
-}
-
 async function removeNetwork(): Promise<void> {
   // Capture identity before awaiting: a successful delete removes the network from the
   // store, and on the details page `object` is derived from it and becomes undefined
@@ -41,12 +33,12 @@ async function removeNetwork(): Promise<void> {
   const { engineId, id, name } = object;
   const oldStatus = object.status;
 
-  inProgress(engineId, id, 'DELETING');
+  setNetworkStatus(engineId, id, 'DELETING');
   try {
     await window.removeNetwork(engineId, id);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    inProgress(engineId, id, oldStatus);
+    setNetworkStatus(engineId, id, oldStatus);
     await window.showMessageBox({
       title: 'Delete Network Failed',
       message: `Error while deleting network ${name}: ${message}`,
@@ -54,7 +46,7 @@ async function removeNetwork(): Promise<void> {
       buttons: ['Dismiss'],
     });
   } finally {
-    inProgress(engineId, id);
+    clearNetworkActionInProgress(engineId, id);
   }
 }
 
