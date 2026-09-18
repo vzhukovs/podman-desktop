@@ -106,7 +106,9 @@ async function deleteSelectedVolumes(): Promise<void> {
 
   // mark volumes for deletion
   bulkDeleteInProgress = true;
-  selectedVolumes.forEach(volume => setVolumeStatus(volume.engineId, volume.name, 'DELETING'));
+  selectedVolumes.forEach(volume => {
+    setVolumeStatus(volume.engineId, volume.name, 'DELETING');
+  });
   volumes = volumes;
 
   await Promise.all(

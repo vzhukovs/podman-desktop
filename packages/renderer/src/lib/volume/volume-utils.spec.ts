@@ -47,6 +47,12 @@ test('Should leave labels and options undefined when the volume carries none', a
   expect(volumeInfoUI.options).toBeUndefined();
 });
 
+test('Should report options as undefined when the volume carries null options', async () => {
+  const volumeInfo = { Name: 'my-volume', Options: null } as unknown as VolumeInfo;
+  const volumeInfoUI = volumeUtils.toVolumeInfoUI(volumeInfo);
+  expect(volumeInfoUI.options).toBeUndefined();
+});
+
 test('Should expose labels and options when the volume carries them', async () => {
   const volumeInfo = {
     Name: 'my-volume',
