@@ -31,4 +31,7 @@ export interface VolumeInfoUI {
   selected: boolean;
   status: 'USED' | 'UNUSED' | 'DELETING';
   containersUsage: { id: string; names: string[] }[];
+  // --- retained so list search keeps matching these; not rendered ---
+  labels?: { [key: string]: string };
+  options?: { [key: string]: string } | null;
 }
