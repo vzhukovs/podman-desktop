@@ -104,8 +104,7 @@ describe('ImageDetailsFiles component', () => {
       imageGetFilesystemLayersMock.mockResolvedValue({ layers: [] });
       render(ImageDetailsFiles, {});
       imageFilesProviders.set([{ id: 'provider1', label: 'Provider 1' }]);
-      await tick();
-      await tick();
+      await waitFor(() => expect(getConfigurationValueMock).toHaveBeenCalled());
       expect(imageGetFilesystemLayersMock).not.toHaveBeenCalled();
     });
 
